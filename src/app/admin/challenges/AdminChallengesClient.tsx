@@ -26,13 +26,14 @@ const CONDITION_TYPES: { value: Challenge["conditionType"]; label: string }[] = 
 ];
 
 const EMPTY_FORM: Omit<Challenge, "id"> = {
-  code:            "",
-  nameKo:          "",
-  descriptionKo:   "",
-  conditionType:   "count",
-  conditionValue:  { value: 1 },
-  rewardBadgeCode: null,
-  isActive:        true,
+  code:             "",
+  nameKo:           "",
+  descriptionKo:    "",
+  conditionType:    "count",
+  conditionValue:   { value: 1 },
+  rewardBadgeCode:  null,
+  isActive:         true,
+  participantCount: 0,
 };
 
 export default function AdminChallengesClient() {
