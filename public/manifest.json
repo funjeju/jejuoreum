@@ -1,0 +1,27 @@
+{
+  "name": "제주 오름 패스포트",
+  "short_name": "오름패스포트",
+  "description": "제주 오름 100선 수집 여정",
+  "start_url": "/ko",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a4d2e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["travel", "lifestyle"],
+  "lang": "ko-KR",
+  "scope": "/"
+}
