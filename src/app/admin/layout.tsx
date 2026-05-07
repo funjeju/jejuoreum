@@ -24,7 +24,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router   = useRouter();
   const [checking, setChecking] = useState(true);
 
+  const isLoginPage = pathname === "/admin/login";
+
   useEffect(() => {
+    if (isLoginPage) { setChecking(false); return; }
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.replace("/admin/login"); return; }
       const token = await user.getIdTokenResult();
@@ -32,7 +35,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setChecking(false);
     });
     return unsub;
-  }, [router]);
+  }, [router, isLoginPage]);
+
+  if (isLoginPage) return <>{children}</>;
 
   if (checking) {
     return (
