@@ -20,10 +20,12 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const page     = Number(searchParams.get("page") ?? "1");
-  const pageSize = Number(searchParams.get("pageSize") ?? "20");
-  const search   = searchParams.get("search") ?? undefined;
+  const page      = Number(searchParams.get("page") ?? "1");
+  const pageSize  = Number(searchParams.get("pageSize") ?? "20");
+  const search    = searchParams.get("search") ?? undefined;
+  const pubParam  = searchParams.get("published");
+  const published = pubParam === "true" ? true : pubParam === "false" ? false : undefined;
 
-  const result = await adminGetOreums({ page, pageSize, search });
+  const result = await adminGetOreums({ page, pageSize, search, published });
   return NextResponse.json(result);
 }

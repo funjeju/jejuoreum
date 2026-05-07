@@ -36,6 +36,10 @@ export default function AdminOreumsClient() {
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading]         = useState(false);
 
+  const [publishFilter, setPublishFilter] = useState<"all" | "published" | "unpublished">("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   const [editOreum, setEditOreum]     = useState<Oreum | null>(null);
   const [editLoading, setEditLoading] = useState(false);
 
@@ -53,6 +57,8 @@ export default function AdminOreumsClient() {
       const token = await getToken();
       const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
       if (search) params.set("search", search);
+      if (publishFilter === "published")   params.set("published", "true");
+      if (publishFilter === "unpublished") params.set("published", "false");
       const res = await fetch(`/api/admin/oreums?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -62,9 +68,46 @@ export default function AdminOreumsClient() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, publishFilter]);
 
   useEffect(() => { fetchOreums(); }, [fetchOreums]);
+  useEffect(() => { setSelectedIds(new Set()); }, [page, search]);
+
+  const pageIds = oreums.map((o) => o.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      setSelectedIds((prev) => { const s = new Set(prev); pageIds.forEach((id) => s.delete(id)); return s; });
+    } else {
+      setSelectedIds((prev) => { const s = new Set(prev); pageIds.forEach((id) => s.add(id)); return s; });
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  };
+
+  const handleBulkPublish = async (publish: boolean) => {
+    if (selectedIds.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const token = await getToken();
+      await Promise.all(
+        [...selectedIds].map((id) =>
+          fetch(`/api/admin/oreums/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ isPublished: publish }),
+          })
+        )
+      );
+      setSelectedIds(new Set());
+      fetchOreums();
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const handleTogglePublish = async (oreum: Oreum) => {
     const token = await getToken();
@@ -169,6 +212,26 @@ export default function AdminOreumsClient() {
         </Button>
       </div>
 
+      <div className="flex gap-1 mb-4 border-b">
+        {([
+          { key: "all",         label: "전체" },
+          { key: "published",   label: "발행" },
+          { key: "unpublished", label: "미발행" },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => { setPublishFilter(key); setPage(1); setSelectedIds(new Set()); }}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              publishFilter === key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1 max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -190,11 +253,54 @@ export default function AdminOreumsClient() {
         )}
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-primary/5 border border-primary/20 rounded-lg">
+          <span className="text-sm font-medium text-primary">{selectedIds.size}개 선택됨</span>
+          <div className="flex gap-2 ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+              disabled={bulkLoading}
+              onClick={() => handleBulkPublish(true)}
+            >
+              <Eye size={12} className="mr-1" />발행
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs text-orange-500 border-orange-200 hover:bg-orange-50"
+              disabled={bulkLoading}
+              onClick={() => handleBulkPublish(false)}
+            >
+              <EyeOff size={12} className="mr-1" />미발행
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              <X size={12} className="mr-1" />선택 해제
+            </Button>
+          </div>
+          {bulkLoading && <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
+        </div>
+      )}
+
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 border-b">
               <tr>
+                <th className="px-4 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={toggleSelectAll}
+                    className="rounded border-muted-foreground/30 cursor-pointer"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-8">#</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">이름</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">슬러그</th>
@@ -209,7 +315,7 @@ export default function AdminOreumsClient() {
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 8 }).map((_, j) => (
+                    {Array.from({ length: 9 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 bg-muted animate-pulse rounded" />
                       </td>
@@ -217,7 +323,18 @@ export default function AdminOreumsClient() {
                   </tr>
                 ))
                 : oreums.map((o, idx) => (
-                  <tr key={o.id} className="hover:bg-muted/20 transition-colors">
+                  <tr
+                    key={o.id}
+                    className={`hover:bg-muted/20 transition-colors ${selectedIds.has(o.id) ? "bg-primary/5" : ""}`}
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(o.id)}
+                        onChange={() => toggleSelect(o.id)}
+                        className="rounded border-muted-foreground/30 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground text-xs">
                       {(page - 1) * PAGE_SIZE + idx + 1}
                     </td>

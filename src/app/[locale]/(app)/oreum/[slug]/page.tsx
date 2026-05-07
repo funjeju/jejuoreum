@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Script from "next/script";
-import { getOreumBySlug } from "@/lib/firestore/oreums";
+import { adminGetOreumBySlug } from "@/lib/firestore/admin-oreums";
 import { adminGetRatingSummary } from "@/lib/firestore/admin-comments";
 import OreumCardClient from "./OreumCardClient";
 import type { Metadata } from "next";
@@ -18,7 +18,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale } = await params;
-  const oreum = await getOreumBySlug(slug);
+  const oreum = await adminGetOreumBySlug(slug);
   if (!oreum) return {};
 
   const regionLabel = REGION_LABEL[oreum.region] ?? oreum.region;
@@ -114,7 +114,7 @@ export const dynamic = "force-dynamic";
 export default async function OreumPage({ params }: Props) {
   const { slug, locale } = await params;
   const [oreum, rating] = await Promise.all([
-    getOreumBySlug(slug),
+    adminGetOreumBySlug(slug),
     adminGetRatingSummary(slug).catch(() => null),
   ]);
   if (!oreum) notFound();

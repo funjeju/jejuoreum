@@ -73,7 +73,7 @@ export default function CollectionPage() {
   }, [regionFilter, discFilter, sortBy, discSet]);
 
   const byTier = useMemo(() => ({
-    beginner: oreums.filter((o) => o.tier === "beginner"),
+    beginner: oreums.filter((o) => o.tier === "beginner" || o.tier === null),
     explorer: oreums.filter((o) => o.tier === "explorer"),
     master:   oreums.filter((o) => o.tier === "master"),
   }), [oreums]);

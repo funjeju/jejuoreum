@@ -21,30 +21,36 @@ export async function getOreumCards(opts: {
   region?: Region;
   limitCount?: number;
 } = {}): Promise<OreumCard[]> {
-  const constraints: QueryConstraint[] = [];
-  if (opts.top100Only) constraints.push(where("isTop100", "==", true));
-  if (opts.tier)       constraints.push(where("tier", "==", opts.tier));
-  if (opts.region)     constraints.push(where("region", "==", opts.region));
-  constraints.push(where("isPublished", "==", true));
-  constraints.push(orderBy("tierOrder", "asc"));
-  if (opts.limitCount) constraints.push(limit(opts.limitCount));
+  // 복합 인덱스 없이 단순 쿼리 후 메모리 필터링
+  const snap = await getDocs(
+    query(collection(db, COL), where("isPublished", "==", true))
+  );
 
-  const snap = await getDocs(query(collection(db, COL), ...constraints));
-  return snap.docs.map((d) => {
+  let cards = snap.docs.map((d) => {
     const data = d.data();
     return {
-      id:               d.id,
-      slug:             data.slug,
-      nameKo:           data.nameKo,
-      tier:             data.tier ?? null,
-      tierOrder:        data.tierOrder ?? null,
-      region:           data.region,
-      difficulty:       data.difficulty ?? null,
-      thumbnailUrl:     data.thumbnailUrl ?? null,
+      id:                d.id,
+      slug:              data.slug,
+      nameKo:            data.nameKo,
+      tier:              data.tier ?? null,
+      tierOrder:         data.tierOrder ?? null,
+      region:            data.region,
+      difficulty:        data.difficulty ?? null,
+      thumbnailUrl:      data.thumbnailUrl ?? null,
       emotionalKeywords: data.emotionalKeywords ?? [],
-      isPublished:      data.isPublished,
+      isPublished:       data.isPublished,
     } as OreumCard;
   });
+
+  if (opts.top100Only) cards = cards.filter((o) => (o as OreumCard & { isTop100?: boolean }).isTop100 !== false);
+  if (opts.tier)       cards = cards.filter((o) => o.tier === opts.tier);
+  if (opts.region)     cards = cards.filter((o) => o.region === opts.region);
+
+  cards.sort((a, b) => (a.tierOrder ?? 99999) - (b.tierOrder ?? 99999));
+
+  if (opts.limitCount) cards = cards.slice(0, opts.limitCount);
+
+  return cards;
 }
 
 export async function getNearbyOreums(

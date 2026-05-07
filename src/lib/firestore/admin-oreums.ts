@@ -7,11 +7,16 @@ export async function adminGetOreums(opts: {
   page?: number;
   pageSize?: number;
   search?: string;
+  published?: boolean;
 } = {}): Promise<{ oreums: Oreum[]; total: number }> {
   const { page = 1, pageSize = 20 } = opts;
   const colRef = adminDb.collection(COL).orderBy("tierOrder", "asc");
   const snap = await colRef.get();
   let docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Oreum));
+
+  if (opts.published !== undefined) {
+    docs = docs.filter((o) => o.isPublished === opts.published);
+  }
 
   if (opts.search) {
     const q = opts.search.toLowerCase();
@@ -29,6 +34,12 @@ export async function adminGetOreum(id: string): Promise<Oreum | null> {
   const d = await adminDb.collection(COL).doc(id).get();
   if (!d.exists) return null;
   return { id: d.id, ...d.data() } as Oreum;
+}
+
+export async function adminGetOreumBySlug(slug: string): Promise<Oreum | null> {
+  const snap = await adminDb.collection(COL).where("slug", "==", slug).limit(1).get();
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() } as Oreum;
 }
 
 export async function adminUpdateOreum(id: string, data: Partial<Oreum>): Promise<void> {
@@ -178,8 +189,14 @@ export async function adminBulkUpsertOreums(rows: CsvOreumRow[]): Promise<{ inse
         ...(row.tierOrder !== undefined && { tierOrder: row.tierOrder }),
         region: row.region,
         ...(row.elevationM !== undefined && { elevationM: row.elevationM }),
+        ...(row.prominenceM !== undefined && { prominenceM: row.prominenceM }),
         ...(row.oneLinerKo && { oneLinerKo: row.oneLinerKo }),
         ...(row.difficulty !== undefined && { difficulty: row.difficulty }),
+        ...((row.lat !== undefined || row.lng !== undefined || row.address) && {
+          "location.lat":     row.lat ?? 0,
+          "location.lng":     row.lng ?? 0,
+          "location.address": row.address ?? null,
+        }),
         updatedAt: now,
       });
       updated++;
