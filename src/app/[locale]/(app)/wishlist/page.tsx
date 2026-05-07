@@ -67,7 +67,7 @@ export default function WishlistPage() {
     <div className="min-h-screen bg-background pb-28">
       <Header title={t("title")} />
 
-      <div className="bg-[var(--header-bg)] px-5 pt-4 pb-8">
+      <div className="bg-header px-5 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-2">
             <Heart size={20} className="text-white/70" fill="rgba(255,255,255,0.3)" />

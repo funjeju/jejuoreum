@@ -9,7 +9,7 @@ interface Props {
 export function CollectionStatsCard({ discovered, total }: Props) {
   const pct = total > 0 ? Math.round((discovered / total) * 100) : 0;
   return (
-    <Card className="bg-[var(--header-bg)] text-white p-5 rounded-2xl border-0">
+    <Card className="bg-header text-white p-5 rounded-2xl border-0">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm text-white/70 mb-2">나의 도감 완성도</p>

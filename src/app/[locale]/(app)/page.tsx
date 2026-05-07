@@ -121,7 +121,7 @@ export default function HomePage() {
       <Header />
 
       {/* ── 다크 그린 헤더 영역 ─────────────────────────── */}
-      <div className="bg-[var(--header-bg)] px-5 pt-4 pb-8">
+      <div className="bg-header px-5 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
           {user && !authLoading ? (
             <div className="flex items-start justify-between">

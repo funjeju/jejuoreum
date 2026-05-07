@@ -24,7 +24,7 @@ export function Header({ title = "제주 오름 패스포트", notificationCount
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-[var(--header-bg)] px-4 text-white">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-header px-4 text-white">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white">
@@ -32,7 +32,7 @@ export function Header({ title = "제주 오름 패스포트", notificationCount
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0">
-          <SheetHeader className="bg-[var(--header-bg)] px-6 py-8 text-white">
+          <SheetHeader className="bg-header px-6 py-8 text-white">
             <SheetTitle className="text-white text-lg font-bold">제주 오름 패스포트</SheetTitle>
             <p className="text-white/70 text-sm mt-1">
               {user ? `${user.displayName ?? "탐험가"}님` : "로그인하여 시작하세요"}

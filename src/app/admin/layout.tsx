@@ -44,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-background flex">
-      <aside className="w-56 bg-[var(--header-bg)] flex flex-col">
+      <aside className="w-56 bg-header flex flex-col">
         <div className="px-5 py-6 flex items-center gap-2.5 border-b border-white/10">
           <Mountain size={20} className="text-white" />
           <span className="text-white font-bold text-sm">Admin</span>

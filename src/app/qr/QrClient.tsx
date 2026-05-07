@@ -151,7 +151,7 @@ export default function QrClient() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--header-bg)] flex flex-col">
+    <div className="min-h-screen bg-header flex flex-col">
       <div className="p-4">
         <button
           onClick={() => router.back()}

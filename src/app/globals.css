@@ -130,6 +130,13 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.bg-header {
+  background-color: hsl(142, 60%, 9%);
+}
+.dark .bg-header {
+  background-color: hsl(142, 60%, 5%);
+}
+
 [scrollbar-width="none"]::-webkit-scrollbar {
   display: none;
 }

@@ -76,7 +76,7 @@ export default function ProfilePage() {
       <Header title={t("title")} />
 
       {/* 프로필 헤더 */}
-      <div className="bg-[var(--header-bg)] px-5 pt-6 pb-10">
+      <div className="bg-header px-5 pt-6 pb-10">
         <div className="max-w-lg mx-auto flex items-center gap-4">
           {loading ? (
             <Skeleton className="w-16 h-16 rounded-full" />

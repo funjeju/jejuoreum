@@ -76,7 +76,7 @@ export default function ChallengesClient() {
       <Header />
 
       {/* 헤더 */}
-      <div className="bg-[var(--header-bg)] pt-4 pb-8 px-4">
+      <div className="bg-header pt-4 pb-8 px-4">
         <h1 className="text-white font-bold text-lg">챌린지 & 배지</h1>
         <p className="text-white/50 text-xs mt-0.5">오름 탐험의 목표를 설정하세요</p>
       </div>

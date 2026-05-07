@@ -73,7 +73,7 @@ export default function ProfileEditClient() {
   return (
     <div className="min-h-screen bg-background">
       {/* 헤더 */}
-      <div className="bg-[var(--header-bg)] px-4 pt-4 pb-8">
+      <div className="bg-header px-4 pt-4 pb-8">
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.back()}

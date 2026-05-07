@@ -147,7 +147,7 @@ export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
     <div className="max-w-lg mx-auto bg-background min-h-screen pb-40">
       {/* ── 히어로 (스크롤 시 축소) ─── */}
       <div
-        className="sticky top-0 z-20 w-full overflow-hidden bg-[var(--header-bg)]"
+        className="sticky top-0 z-20 w-full overflow-hidden bg-header"
         style={{ height: heroH, transition: "height 0.05s linear" }}
       >
         {oreum.thumbnailUrl ? (

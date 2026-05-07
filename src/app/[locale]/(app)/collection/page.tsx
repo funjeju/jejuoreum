@@ -85,7 +85,7 @@ export default function CollectionPage() {
       <Header title={t("title")} />
 
       {/* 다크 그린 스탯 카드 */}
-      <div className="bg-[var(--header-bg)] px-4 pt-4 pb-8">
+      <div className="bg-header px-4 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
           <CollectionStatsCard discovered={totalDiscovered} total={100} />
         </div>
