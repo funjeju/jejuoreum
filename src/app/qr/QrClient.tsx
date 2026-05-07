@@ -384,6 +384,9 @@ function SuccessView({ oreum, isNew, newBadges, monthCount, onClose, t }: {
       <h2 className="text-3xl font-bold mb-1">{isNew ? t("success_new") : t("success_revisit")}</h2>
       <p className="text-white/80 text-lg mb-1">{oreum.nameKo}</p>
       {isNew && <p className="text-white/50 text-sm">{t("success_color")}</p>}
+      {isNew && monthCount !== null && (
+        <p className="text-white/40 text-xs mt-1">이번 달 {monthCount}번째 발견이에요 🌿</p>
+      )}
 
       {newBadges.length > 0 && (
         <motion.div
