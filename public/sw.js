@@ -1,13 +1,6 @@
 const CACHE_NAME = "jejuoreum-v1";
-const STATIC_ASSETS = [
-  "/ko",
-  "/manifest.json",
-];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -21,23 +14,27 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network-first for API routes; cache-first for static assets
-  if (event.request.url.includes("/api/")) {
-    event.respondWith(
-      fetch(event.request).catch(() => new Response("", { status: 503 }))
-    );
+  const url = event.request.url;
+
+  // Only handle http/https requests
+  if (!url.startsWith("http")) return;
+
+  // Network-only for API, admin, auth routes
+  if (url.includes("/api/") || url.includes("/admin") || url.includes("/auth/")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
+  // Network-first for everything else
   event.respondWith(
-    caches.match(event.request).then((cached) =>
-      cached ?? fetch(event.request).then((res) => {
+    fetch(event.request)
+      .then((res) => {
         if (res.ok && event.request.method === "GET") {
           const cloned = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(event.request, cloned));
+          caches.open(CACHE_NAME).then((c) => c.put(event.request, cloned)).catch(() => {});
         }
         return res;
       })
-    )
+      .catch(() => caches.match(event.request))
   );
 });
