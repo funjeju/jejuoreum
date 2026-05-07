@@ -104,7 +104,7 @@ export default async function RegionPage({ params }: Props) {
         <Header title={`${meta.label} 오름`} />
 
         {/* 히어로 */}
-        <div className="bg-[hsl(var(--header-bg))] px-4 pt-3 pb-10">
+        <div className="bg-[var(--header-bg)] px-4 pt-3 pb-10">
           <div className="max-w-lg mx-auto">
             <Link href={`/${locale}/oreum`} className="inline-flex items-center gap-1 text-white/60 text-xs mb-2 hover:text-white/80">
               <ChevronLeft size={14} />

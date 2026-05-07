@@ -72,7 +72,7 @@ export default async function OreumHubPage({ params }: Props) {
         <Header title="제주 오름" />
 
         {/* 히어로 */}
-        <div className="bg-[hsl(var(--header-bg))] px-4 pt-4 pb-10">
+        <div className="bg-[var(--header-bg)] px-4 pt-4 pb-10">
           <div className="max-w-lg mx-auto">
             <p className="text-white/60 text-sm mt-1">
               제주의 {oreums.length}개 오름을 지역별로 탐험하세요

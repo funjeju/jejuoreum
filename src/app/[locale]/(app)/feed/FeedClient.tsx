@@ -61,7 +61,7 @@ export default function FeedClient({ initialEvents }: { initialEvents: FeedEvent
       <Header />
 
       {/* 헤더 영역 */}
-      <div className="bg-[hsl(var(--header-bg))] pt-4 pb-8 px-4">
+      <div className="bg-[var(--header-bg)] pt-4 pb-8 px-4">
         <h1 className="text-white font-bold text-lg">활동 피드</h1>
         <p className="text-white/50 text-xs mt-0.5">탐험가들의 실시간 발자국</p>
       </div>

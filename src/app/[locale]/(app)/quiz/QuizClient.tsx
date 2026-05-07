@@ -110,7 +110,7 @@ export default function QuizClient() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--header-bg))] flex flex-col">
+    <div className="min-h-screen bg-[var(--header-bg)] flex flex-col">
       {/* 상단 헤더 */}
       <div className="p-4 flex items-center justify-between">
         <button
