@@ -1,13 +1,10 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
-import path from "path";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: path.join(__dirname, "../../"),
   webpack(config) {
-    // Suppress known dynamic require warning from @protobufjs/inquire (firebase-admin transitive dep)
     config.ignoreWarnings = [
       ...(config.ignoreWarnings ?? []),
       { module: /@protobufjs\/inquire/ },
@@ -22,9 +19,7 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/avif", "image/webp"],
   },
-  // Compress responses
   compress: true,
-  // Power-on headers for security
   async headers() {
     return [
       {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store, Inbox, TrendingUp, Flag, Upload, ShoppingBag, Sparkles, BarChart2 } from "lucide-react";
+import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store, Inbox, TrendingUp, Flag, Upload, ShoppingBag, Sparkles, BarChart2, PaintbrushVertical } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,7 @@ const NAV = [
   { href: "/admin/bulk-import",         icon: Upload,          label: "일괄 업로드" },
   { href: "/admin/goods",               icon: ShoppingBag,     label: "굿즈·주문" },
   { href: "/admin/season-badges",       icon: Sparkles,        label: "시즌 배지" },
+  { href: "/admin/card-maker",          icon: PaintbrushVertical, label: "카드 메이커" },
   { href: "/admin/users",               icon: Users,           label: "사용자" },
   { href: "/admin/analytics",           icon: BarChart2,       label: "분석" },
 ];
