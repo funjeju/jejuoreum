@@ -61,6 +61,7 @@ export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
   const [relatedOreums, setRelated]       = useState<OreumCard[]>([]);
   const [merchants, setMerchants]         = useState<Merchant[]>([]);
   const [totalVisitors, setTotalVisitors] = useState<number | null>(null);
+  const [weeklyVisitors, setWeeklyVisitors] = useState<number | null>(null);
   const [activeNav, setActiveNav]         = useState<NavSection>("info");
 
   const sectionRefs: Record<NavSection, React.RefObject<HTMLDivElement | null>> = {
@@ -89,7 +90,10 @@ export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
   useEffect(() => {
     fetch(`/api/oreums/${oreum.slug}/stats`)
       .then((r) => r.json())
-      .then((data) => setTotalVisitors(data.totalVisitors ?? null))
+      .then((data) => {
+        setTotalVisitors(data.totalVisitors ?? null);
+        setWeeklyVisitors(data.weeklyVisitors ?? null);
+      })
       .catch(() => {});
   }, [oreum.slug]);
 
@@ -189,13 +193,18 @@ export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
         >
           <div className="flex items-end justify-between">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 {oreum.tier && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/20">
                     {TIER_LABEL[oreum.tier]}
                   </span>
                 )}
                 <span className="text-white/60 text-xs">{REGION_LABEL[oreum.region]}</span>
+                {weeklyVisitors !== null && weeklyVisitors >= 5 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--brand-green-100,#d1fae5)] text-[var(--brand-green-800,#065f46)]">
+                    🔥 이번 주 인기
+                  </span>
+                )}
               </div>
               <h1 className="text-white text-[26px] font-bold leading-tight">{oreum.nameKo}</h1>
               {oreum.oneLinerKo && (

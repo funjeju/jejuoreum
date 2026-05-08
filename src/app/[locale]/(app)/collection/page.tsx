@@ -79,6 +79,11 @@ export default function CollectionPage() {
   }), [oreums]);
 
   const totalDiscovered = oreums.filter((o) => discSet.has(o.slug)).length;
+  const thisMonthDisc = useMemo(() => {
+    const start = new Date();
+    start.setDate(1); start.setHours(0, 0, 0, 0);
+    return discoveries.filter((d) => new Date(d.discoveredAt) >= start).length;
+  }, [discoveries]);
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -87,7 +92,7 @@ export default function CollectionPage() {
       {/* 다크 그린 스탯 카드 */}
       <div className="bg-header px-4 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
-          <CollectionStatsCard discovered={totalDiscovered} total={100} />
+          <CollectionStatsCard discovered={totalDiscovered} total={100} thisMonthDisc={thisMonthDisc} />
         </div>
       </div>
 

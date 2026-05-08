@@ -4,9 +4,10 @@ import { Progress } from "@/components/ui/progress";
 interface Props {
   discovered: number;
   total: number;
+  thisMonthDisc?: number;
 }
 
-export function CollectionStatsCard({ discovered, total }: Props) {
+export function CollectionStatsCard({ discovered, total, thisMonthDisc }: Props) {
   const pct = total > 0 ? Math.round((discovered / total) * 100) : 0;
   return (
     <Card className="bg-header text-white p-5 rounded-2xl border-0">
@@ -21,7 +22,12 @@ export function CollectionStatsCard({ discovered, total }: Props) {
             value={pct}
             className="mt-4 h-1.5 bg-white/20 [&>div]:bg-white [&>div]:transition-all [&>div]:duration-700"
           />
-          <p className="text-xs text-white/50 mt-1.5">{pct}% 완료</p>
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-xs text-white/50">{pct}% 완료</p>
+            {thisMonthDisc !== undefined && thisMonthDisc > 0 && (
+              <p className="text-xs text-white/60">이번 달 +{thisMonthDisc}개</p>
+            )}
+          </div>
         </div>
 
         <div className="ml-4 shrink-0 opacity-60">
