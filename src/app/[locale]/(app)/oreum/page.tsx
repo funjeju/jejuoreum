@@ -20,8 +20,9 @@ const SEASON_META = [
 ] as const;
 
 const FEATURE_META = [
-  { feature: "sunrise", label: "일출 명소", emoji: "🌅", desc: "새벽빛과 함께하는 제주 일출 오름" },
-  { feature: "sunset",  label: "일몰 명소", emoji: "🌇", desc: "노을빛으로 물드는 제주 일몰 오름" },
+  { feature: "sunrise", label: "일출 명소",  emoji: "🌅", desc: "새벽빛과 함께하는 제주 일출 오름" },
+  { feature: "sunset",  label: "일몰 명소",  emoji: "🌇", desc: "노을빛으로 물드는 제주 일몰 오름" },
+  { feature: "crater",  label: "분화구 오름", emoji: "🌋", desc: "원형 분화구가 살아있는 제주 오름" },
 ] as const;
 
 const BASE_URL = "https://jejuoreum.com";

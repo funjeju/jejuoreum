@@ -8,7 +8,7 @@ const LOCALES = ["ko", "en", "ja", "zh"] as const;
 const REGIONS: Region[] = ["east", "west", "south", "north", "central"];
 const LEVELS = ["beginner", "explorer"] as const;
 const SEASONS = ["spring", "summer", "autumn", "winter"] as const;
-const FEATURES = ["sunrise", "sunset"] as const;
+const FEATURES = ["sunrise", "sunset", "crater"] as const;
 
 function localePrefix(locale: (typeof LOCALES)[number]) {
   return `/${locale}`;

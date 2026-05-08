@@ -37,6 +37,7 @@ export interface Oreum {
   mbti: string | null;
   photoUrls: string[];
   thumbnailUrl: string | null;
+  hasCrater: boolean | null;
   isPrivateLand: boolean;
   hasAccessRestriction: boolean;
   accessNotes: string | null;

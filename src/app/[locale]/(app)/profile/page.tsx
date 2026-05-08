@@ -71,6 +71,18 @@ export default function ProfilePage() {
   const total = discoveries.length;
   const pct = Math.min((total / 100) * 100, 100);
 
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const thisMonthDisc = discoveries.filter((d) => new Date(d.discoveredAt) >= startOfMonth).length;
+  const thisWeekDisc = discoveries.filter((d) => new Date(d.discoveredAt) >= startOfWeek).length;
+  const uniqueRegions = new Set(
+    discoveries.filter((d) => new Date(d.discoveredAt) >= startOfMonth).map((d) => d.oreumRegion)
+  ).size;
+
   return (
     <div className="min-h-screen bg-background pb-28">
       <Header title={t("title")} />
@@ -124,6 +136,27 @@ export default function ProfilePage() {
               </div>
             </div>
             <Progress value={pct} className="h-1.5 [&>div]:bg-primary" />
+          </div>
+        )}
+
+        {/* 리듬 통계 카드 */}
+        {!loading && (
+          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">이번 달 리듬</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center bg-muted/40 rounded-xl py-3">
+                <p className="text-xl font-bold text-primary">{thisMonthDisc}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">이번 달</p>
+              </div>
+              <div className="text-center bg-muted/40 rounded-xl py-3">
+                <p className="text-xl font-bold">{thisWeekDisc}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">이번 주</p>
+              </div>
+              <div className="text-center bg-muted/40 rounded-xl py-3">
+                <p className="text-xl font-bold">{uniqueRegions}<span className="text-xs font-normal text-muted-foreground">/5</span></p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">지역</p>
+              </div>
+            </div>
           </div>
         )}
 

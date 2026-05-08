@@ -85,12 +85,14 @@ export async function adminGetPublishedOreumCards(opts: {
   tier?: Tier;
   season?: Season;
   timeOfDay?: TimeOfDay;
+  crater?: boolean;
 } = {}): Promise<{ id: string; slug: string; nameKo: string; region: Region; tier: Tier | null; tierOrder: number | null; thumbnailUrl: string | null; difficulty: number | null; elevationM: number | null; oneLinerKo: string | null }[]> {
   let q = adminDb.collection(COL).where("isPublished", "==", true).orderBy("tierOrder", "asc");
   if (opts.region) q = adminDb.collection(COL).where("isPublished", "==", true).where("region", "==", opts.region).orderBy("tierOrder", "asc") as typeof q;
   if (opts.tier) q = adminDb.collection(COL).where("isPublished", "==", true).where("tier", "==", opts.tier).orderBy("tierOrder", "asc") as typeof q;
   if (opts.season) q = adminDb.collection(COL).where("isPublished", "==", true).where("recommendedSeasons", "array-contains", opts.season) as typeof q;
   if (opts.timeOfDay) q = adminDb.collection(COL).where("isPublished", "==", true).where("recommendedTimes", "array-contains", opts.timeOfDay) as typeof q;
+  if (opts.crater) q = adminDb.collection(COL).where("isPublished", "==", true).where("hasCrater", "==", true) as typeof q;
   const snap = await q.get();
   return snap.docs.map((d) => {
     const data = d.data();
@@ -176,6 +178,7 @@ export async function adminBulkUpsertOreums(rows: CsvOreumRow[]): Promise<{ inse
         mbti: row.mbti ?? null,
         photoUrls: [],
         thumbnailUrl: null,
+        hasCrater: null,
         isPrivateLand: row.isPrivateLand ?? false,
         hasAccessRestriction: row.hasAccessRestriction ?? false,
         accessNotes: null,

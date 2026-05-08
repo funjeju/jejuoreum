@@ -10,28 +10,39 @@ import type { TimeOfDay } from "@/types";
 
 const BASE_URL = "https://jejuoreum.com";
 
-type Feature = "sunrise" | "sunset";
+type Feature = "sunrise" | "sunset" | "crater";
+
+type FeatureFilter =
+  | { type: "timeOfDay"; value: TimeOfDay }
+  | { type: "crater" };
 
 const FEATURE_META: Record<Feature, {
   label: string;
   emoji: string;
-  timeOfDay: TimeOfDay;
+  filter: FeatureFilter;
   desc: string;
   longDesc: string;
 }> = {
   sunrise: {
     label: "일출 명소",
     emoji: "🌅",
-    timeOfDay: "dawn",
+    filter: { type: "timeOfDay", value: "dawn" },
     desc: "새벽빛과 함께하는 제주 일출 오름",
     longDesc: "제주의 일출은 세계적으로 유명합니다. 새벽 4~6시에 오름에 오르면 한라산과 바다를 배경으로 떠오르는 붉은 태양을 감상할 수 있습니다. 특히 동부의 오름들은 성산일출봉과 함께 제주 일출의 정수를 보여줍니다.",
   },
   sunset: {
     label: "일몰 명소",
     emoji: "🌇",
-    timeOfDay: "evening",
+    filter: { type: "timeOfDay", value: "evening" },
     desc: "노을빛으로 물드는 제주 일몰 오름",
     longDesc: "제주 서부의 오름들은 아름다운 일몰 명소로 유명합니다. 오후 5~7시에 오름에 오르면 수평선 너머로 사라지는 태양과 황금빛 노을을 만날 수 있습니다. 일몰 후에도 붉게 물든 하늘이 한동안 아름다운 광경을 연출합니다.",
+  },
+  crater: {
+    label: "분화구 오름",
+    emoji: "🌋",
+    filter: { type: "crater" },
+    desc: "원형 분화구가 살아있는 제주 오름",
+    longDesc: "제주 오름 중 원형 분화구(화구호·습지·초원)를 온전히 간직한 오름들입니다. 분화구를 품은 오름은 마치 다른 행성에 온 듯한 신비로운 풍경을 선사하며, 제주 화산 지형의 역동성을 가장 직접적으로 느낄 수 있는 곳입니다. 정상에서 내려다보는 분화구의 모습은 잊을 수 없는 경험이 됩니다.",
   },
 };
 
@@ -63,7 +74,10 @@ export default async function FeaturePage({ params }: Props) {
 
   const typedFeature = feature as Feature;
   const meta = FEATURE_META[typedFeature];
-  const oreums = await adminGetPublishedOreumCards({ timeOfDay: meta.timeOfDay }).catch(() => []);
+  const filterOpts = meta.filter.type === "timeOfDay"
+    ? { timeOfDay: meta.filter.value }
+    : { crater: true };
+  const oreums = await adminGetPublishedOreumCards(filterOpts).catch(() => []);
 
   const jsonLd = {
     "@context": "https://schema.org",
