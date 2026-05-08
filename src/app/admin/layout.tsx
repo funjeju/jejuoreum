@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText } from "lucide-react";
+import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/admin",                     icon: LayoutDashboard, label: "대시보드" },
   { href: "/admin/oreums",              icon: List,            label: "오름 관리" },
   { href: "/admin/oreums/mbti-mapping", icon: Mountain,        label: "MBTI 매핑" },
+  { href: "/admin/oreums/validate",     icon: ShieldAlert,     label: "검증 리포트" },
   { href: "/admin/photos/queue",        icon: Camera,          label: "사진 큐" },
   { href: "/admin/comments/queue",      icon: MessageSquare,   label: "코멘트 큐" },
   { href: "/admin/seo-contents",        icon: FileText,        label: "SEO 콘텐츠" },

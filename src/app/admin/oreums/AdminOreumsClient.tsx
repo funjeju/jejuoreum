@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import {
   Upload, Search, ChevronLeft, ChevronRight,
-  Pencil, Eye, EyeOff, FileSpreadsheet, CheckCircle2, X, AlertCircle
+  Pencil, Eye, EyeOff, FileSpreadsheet, CheckCircle2, X, AlertCircle, ShieldAlert, ImagePlus,
 } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 import Papa from "papaparse";
 import type { Oreum, Tier, Region } from "@/types";
 import type { CsvOreumRow } from "@/lib/firestore/admin-oreums";
@@ -206,10 +208,18 @@ export default function AdminOreumsClient() {
           <h1 className="text-2xl font-bold">오름 관리</h1>
           <p className="text-muted-foreground text-sm mt-0.5">전체 {total}개</p>
         </div>
-        <Button onClick={() => { setCsvModal(true); setCsvRows([]); setCsvErrors([]); setCsvResult(null); }}>
-          <Upload size={15} className="mr-1.5" />
-          CSV 일괄 등록
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/admin/oreums/validate">
+            <Button variant="outline">
+              <ShieldAlert size={15} className="mr-1.5" />
+              검증 리포트
+            </Button>
+          </Link>
+          <Button onClick={() => { setCsvModal(true); setCsvRows([]); setCsvErrors([]); setCsvResult(null); }}>
+            <Upload size={15} className="mr-1.5" />
+            CSV 일괄 등록
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-1 mb-4 border-b">
@@ -535,9 +545,82 @@ function EditForm({
   loading: boolean;
 }) {
   const set = (key: keyof Oreum, val: unknown) => onChange({ ...oreum, [key]: val });
+  const [thumbUploading, setThumbUploading] = useState(false);
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setThumbUploading(true);
+    try {
+      const token = await getToken();
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`/api/admin/oreums/${oreum.id}/thumbnail`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.thumbnailUrl) onChange({ ...oreum, thumbnailUrl: data.thumbnailUrl });
+    } finally {
+      setThumbUploading(false);
+      e.target.value = "";
+    }
+  };
 
   return (
     <div className="space-y-5">
+      {/* 썸네일 */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">썸네일</h3>
+        <div className="flex items-start gap-4">
+          <div className="w-24 h-24 rounded-xl overflow-hidden border border-border bg-muted shrink-0 relative">
+            {oreum.thumbnailUrl ? (
+              <Image src={oreum.thumbnailUrl} alt={oreum.nameKo} fill className="object-cover" sizes="96px" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
+                <ImagePlus size={28} />
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className={`flex items-center gap-2 cursor-pointer ${thumbUploading ? "opacity-60" : ""}`}>
+              <Button type="button" variant="outline" size="sm" disabled={thumbUploading} asChild>
+                <span>
+                  <ImagePlus size={14} className="mr-1.5" />
+                  {thumbUploading ? "업로드 중..." : "이미지 업로드"}
+                </span>
+              </Button>
+              <input type="file" accept="image/*" className="hidden" onChange={handleThumbnailUpload} disabled={thumbUploading} />
+            </label>
+            {oreum.thumbnailUrl && (
+              <div className="space-y-1">
+                <Label className="text-xs">URL 직접 입력</Label>
+                <Input
+                  value={oreum.thumbnailUrl ?? ""}
+                  onChange={(e) => set("thumbnailUrl", e.target.value || null)}
+                  placeholder="https://..."
+                  className="text-xs h-7"
+                />
+              </div>
+            )}
+            {!oreum.thumbnailUrl && (
+              <div className="space-y-1">
+                <Label className="text-xs">또는 URL 직접 입력</Label>
+                <Input
+                  value=""
+                  onChange={(e) => set("thumbnailUrl", e.target.value || null)}
+                  placeholder="https://..."
+                  className="text-xs h-7"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <Separator />
+
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">기본 정보</h3>
         <div className="grid grid-cols-2 gap-3">
