@@ -8,10 +8,20 @@ import Image from "next/image";
 import { MapPin, Mountain, ChevronRight, X, CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { saveDiscovery, getUserDiscoveries, getUserProfile } from "@/lib/firestore/users";
+import { saveDiscovery, getUserDiscoveries, getUserProfile, getDiscovery } from "@/lib/firestore/users";
 import { evaluateAndAwardBadges } from "@/lib/firestore/badges";
 import { createDiscoveryFeedEvent } from "@/lib/firestore/feed";
+import { getUserChallenges, updateChallengeProgress } from "@/lib/firestore/challenges";
+import { cn } from "@/lib/utils";
 import type { GpsMatchResult, NearbyOreum, Badge } from "@/types";
+
+type Visibility = "instant" | "delay_10min" | "private";
+
+const VISIBILITY_OPTIONS: { key: Visibility; label: string; desc: string }[] = [
+  { key: "instant",     label: "즉시 공개",  desc: "지금 바로 피드에 공개" },
+  { key: "delay_10min", label: "10분 후",    desc: "10분 후 피드에 공개 (기본)" },
+  { key: "private",     label: "비공개",     desc: "나만 볼 수 있음" },
+];
 
 type Stage =
   | "idle"
@@ -35,6 +45,9 @@ export default function QRPage() {
   const [selected, setSelected]       = useState<NearbyOreum | null>(null);
   const [newBadges, setNewBadges]     = useState<Badge[]>([]);
   const [errMsg, setErrMsg]           = useState<string>("");
+  const [visibility, setVisibility]   = useState<Visibility>("delay_10min");
+  const [monthCount, setMonthCount]   = useState<number | null>(null);
+  const [isRevisit, setIsRevisit]     = useState(false);
 
   const runGpsFlow = useCallback(async () => {
     setStage("locating");
@@ -88,38 +101,70 @@ export default function QRPage() {
     setStage("verifying");
 
     try {
-      const profile = await getUserProfile(user.uid).catch(() => null);
-      await saveDiscovery(user.uid, {
-        oreumId: oreum.id,
-        oreumSlug: oreum.slug,
-        oreumNameKo: oreum.nameKo,
-        oreumRegion: oreum.region,
-        oreumTier: oreum.tier,
-        oreumThumbnailUrl: oreum.thumbnailUrl,
-        discoveredAt: new Date().toISOString(),
-        verificationMethod: "gps",
-        verificationDistanceM: oreum.distanceM,
-        userNote: null,
-        visibility: "public",
-      });
+      const existing = await getDiscovery(user.uid, oreum.slug).catch(() => null);
+      const wasNew = !existing;
+      setIsRevisit(!wasNew);
 
-      // Badge evaluation
-      const discoveries = await getUserDiscoveries(user.uid).catch(() => []);
-      const earned = await evaluateAndAwardBadges(user.uid, discoveries).catch(() => [] as Badge[]);
-      setNewBadges(earned);
-
-      // Feed event
-      if (profile) {
-        createDiscoveryFeedEvent({
-          uid: user.uid,
-          userNickname: profile.nickname,
-          userAvatarUrl: profile.avatarUrl,
+      if (wasNew) {
+        const profile = await getUserProfile(user.uid).catch(() => null);
+        await saveDiscovery(user.uid, {
           oreumId: oreum.id,
           oreumSlug: oreum.slug,
           oreumNameKo: oreum.nameKo,
-          visibility: "public",
-          delayMin: 0,
+          oreumRegion: oreum.region,
+          oreumTier: oreum.tier,
+          oreumThumbnailUrl: oreum.thumbnailUrl,
+          discoveredAt: new Date().toISOString(),
+          verificationMethod: "gps",
+          verificationDistanceM: oreum.distanceM,
+          userNote: null,
+          visibility: visibility === "private" ? "private" : "public",
+        });
+
+        // Badge evaluation + challenge update (background)
+        getUserDiscoveries(user.uid).then(async (allDiscs) => {
+          const now = new Date();
+          const monthDiscs = allDiscs.filter((d) => {
+            const dt = new Date(d.discoveredAt);
+            return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+          });
+          setMonthCount(monthDiscs.length);
+
+          const earned = await evaluateAndAwardBadges(user.uid, allDiscs).catch(() => [] as Badge[]);
+          if (earned.length > 0) {
+            setNewBadges(earned);
+            localStorage.setItem("badge_notification", "1");
+          }
+
+          const challenges = await getUserChallenges(user.uid);
+          for (const ch of challenges) {
+            if (ch.isCompleted) continue;
+            if (allDiscs.length > ch.progress) {
+              updateChallengeProgress(user.uid, ch.id, allDiscs.length, ch.goal).catch(() => {});
+            }
+          }
         }).catch(() => {});
+
+        // Feed event
+        if (visibility !== "private") {
+          getUserProfile(user.uid).then((profile) => {
+            if (!profile) return;
+            createDiscoveryFeedEvent({
+              uid: user.uid,
+              userNickname: profile.nickname,
+              userAvatarUrl: profile.avatarUrl,
+              oreumId: oreum.id,
+              oreumSlug: oreum.slug,
+              oreumNameKo: oreum.nameKo,
+              visibility: "public",
+              delayMin: visibility === "delay_10min" ? 10 : 0,
+            });
+          }).catch(() => {});
+        }
+
+        if (typeof window !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate([40, 30, 80]);
+        }
       }
 
       setSelected(oreum);
@@ -128,7 +173,7 @@ export default function QRPage() {
       setErrMsg("인증 중 오류가 발생했어요. 다시 시도해주세요.");
       setStage("error");
     }
-  }, [user]);
+  }, [user, visibility]);
 
   if (authLoading) {
     return (
@@ -158,7 +203,13 @@ export default function QRPage() {
           </div>
 
           <h2 className="text-2xl font-bold text-foreground mb-1">{selected.nameKo}</h2>
-          <p className="text-muted-foreground text-sm mb-6">발견 완료! 도감에 기록됐어요 🎉</p>
+          <p className="text-muted-foreground text-sm mb-1">
+            {isRevisit ? "다시 방문! 반갑네요 👋" : "발견 완료! 도감에 기록됐어요 🎉"}
+          </p>
+          {!isRevisit && monthCount !== null && (
+            <p className="text-muted-foreground text-xs mb-6">이번 달 {monthCount}번째 발견이에요 🌿</p>
+          )}
+          {isRevisit && <div className="mb-6" />}
 
           {newBadges.length > 0 && (
             <div className="bg-amber-50 rounded-2xl p-4 mb-6 w-full max-w-xs text-left border border-amber-200">
@@ -269,9 +320,30 @@ export default function QRPage() {
 
         <div className="flex-1 flex flex-col justify-between px-5 py-6">
           <div>
-            <p className="text-sm text-muted-foreground text-center">이 오름이 맞다면 인증해주세요</p>
+            <p className="text-sm text-muted-foreground text-center mb-4">이 오름이 맞다면 인증해주세요</p>
+            <div className="bg-muted/40 rounded-2xl border border-border p-3 space-y-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">공개 범위</p>
+              {VISIBILITY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setVisibility(opt.key)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all",
+                    visibility === opt.key
+                      ? "bg-primary/10 border border-primary/20"
+                      : "hover:bg-muted border border-transparent"
+                  )}
+                >
+                  <div className="text-left">
+                    <p className={cn("text-sm font-semibold", visibility === opt.key ? "text-primary" : "text-foreground")}>{opt.label}</p>
+                    <p className="text-muted-foreground text-[11px] mt-0.5">{opt.desc}</p>
+                  </div>
+                  {visibility === opt.key && <CheckCircle2 size={14} className="text-primary shrink-0" />}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 mt-4">
             <Button
               onClick={() => handleConfirm(oreum)}
               className="w-full bg-primary text-white rounded-xl h-12 text-base font-semibold"

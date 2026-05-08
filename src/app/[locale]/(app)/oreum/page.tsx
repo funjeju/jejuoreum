@@ -12,6 +12,13 @@ const LEVEL_META = [
   { level: "explorer", label: "익스플로러", desc: "깊이 있는 탐험을 위한 70선",    tier: "explorer" as const },
 ] as const;
 
+const SEASON_META = [
+  { season: "spring",  label: "봄",    emoji: "🌸", desc: "진달래·벚꽃·유채꽃 오름" },
+  { season: "summer",  label: "여름",  emoji: "🌊", desc: "그늘과 바람의 여름 탐방" },
+  { season: "autumn",  label: "가을",  emoji: "🍁", desc: "억새·단풍 명소 오름" },
+  { season: "winter",  label: "겨울",  emoji: "❄️", desc: "설경과 일출 명소" },
+] as const;
+
 const BASE_URL = "https://jejuoreum.com";
 
 const REGION_META: Record<Region, { label: string; desc: string }> = {
@@ -162,6 +169,24 @@ export default async function OreumHubPage({ params }: Props) {
                       <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{items.length}개</span>
                       <ChevronRight size={14} className="text-muted-foreground" />
                     </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 시즌 카테고리 */}
+          <div className="pt-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">시즌별</p>
+            <div className="grid grid-cols-2 gap-3">
+              {SEASON_META.map(({ season, label, emoji, desc }) => (
+                <Link key={season} href={`/${locale}/oreum/season/${season}`}>
+                  <div className="bg-card border border-border rounded-2xl p-4 hover:border-primary/40 transition-colors h-full">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base">{emoji}</span>
+                      <span className="font-bold text-sm text-foreground">{label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
                   </div>
                 </Link>
               ))}
