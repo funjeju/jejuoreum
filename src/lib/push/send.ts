@@ -1,12 +1,6 @@
 import webpush from "web-push";
 import { adminDb } from "@/lib/firebase/admin";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? "mailto:admin@jejuoreum.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
-  process.env.VAPID_PRIVATE_KEY ?? "",
-);
-
 export interface PushPayload {
   title: string;
   body: string;
@@ -17,6 +11,12 @@ export interface PushPayload {
 
 export async function sendPushToUser(uid: string, payload: PushPayload) {
   if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT ?? "mailto:admin@jejuoreum.com",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  );
 
   const subsSnap = await adminDb
     .collection("users")
