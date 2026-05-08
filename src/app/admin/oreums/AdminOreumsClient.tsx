@@ -593,28 +593,15 @@ function EditForm({
               </Button>
               <input type="file" accept="image/*" className="hidden" onChange={handleThumbnailUpload} disabled={thumbUploading} />
             </label>
-            {oreum.thumbnailUrl && (
-              <div className="space-y-1">
-                <Label className="text-xs">URL 직접 입력</Label>
-                <Input
-                  value={oreum.thumbnailUrl ?? ""}
-                  onChange={(e) => set("thumbnailUrl", e.target.value || null)}
-                  placeholder="https://..."
-                  className="text-xs h-7"
-                />
-              </div>
-            )}
-            {!oreum.thumbnailUrl && (
-              <div className="space-y-1">
-                <Label className="text-xs">또는 URL 직접 입력</Label>
-                <Input
-                  value=""
-                  onChange={(e) => set("thumbnailUrl", e.target.value || null)}
-                  placeholder="https://..."
-                  className="text-xs h-7"
-                />
-              </div>
-            )}
+            <div className="space-y-1">
+              <Label className="text-xs">URL 직접 입력</Label>
+              <Input
+                value={oreum.thumbnailUrl ?? ""}
+                onChange={(e) => set("thumbnailUrl", e.target.value || null)}
+                placeholder="https://..."
+                className="text-xs h-7"
+              />
+            </div>
           </div>
         </div>
       </section>
