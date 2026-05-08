@@ -8,7 +8,7 @@ const LOCALES = ["ko", "en", "ja", "zh"] as const;
 const REGIONS: Region[] = ["east", "west", "south", "north", "central"];
 
 function localePrefix(locale: (typeof LOCALES)[number]) {
-  return locale === "ko" ? "" : `/${locale}`;
+  return `/${locale}`;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const p = localePrefix(locale);
     return [
       {
-        url: `${BASE_URL}${p || "/"}`,
+        url: `${BASE_URL}${p}`,
         lastModified: now,
         changeFrequency: "daily" as const,
         priority: locale === "ko" ? 1.0 : 0.9,
