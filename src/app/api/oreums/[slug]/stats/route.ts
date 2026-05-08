@@ -6,19 +6,43 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo  = new Date(Date.now() - 7  * 24 * 60 * 60 * 1000).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [totalSnap, weekSnap] = await Promise.all([
+  const [totalSnap, weekSnap, monthSnap] = await Promise.all([
     adminDb.collectionGroup("discoveries").where("oreumSlug", "==", slug).count().get(),
     adminDb.collectionGroup("discoveries")
       .where("oreumSlug", "==", slug)
       .where("discoveredAt", ">=", sevenDaysAgo)
       .count()
       .get(),
+    adminDb.collectionGroup("discoveries")
+      .where("oreumSlug", "==", slug)
+      .where("discoveredAt", ">=", thirtyDaysAgo)
+      .count()
+      .get(),
   ]);
 
+  const totalVisitors   = totalSnap.data().count;
+  const weeklyVisitors  = weekSnap.data().count;
+  const monthlyVisitors = monthSnap.data().count;
+
+  // Tiered companionship message (docs/20 section 3.3)
+  let companionshipMessage: string | null = null;
+  if (weeklyVisitors >= 50) {
+    companionshipMessage = `이번 주 ${weeklyVisitors.toLocaleString()}명이 다녀갔어요`;
+  } else if (monthlyVisitors >= 100) {
+    companionshipMessage = `지난 30일간 ${monthlyVisitors.toLocaleString()}명이 다녀갔어요`;
+  } else if (monthlyVisitors >= 10) {
+    companionshipMessage = `최근 ${monthlyVisitors.toLocaleString()}명이 다녀갔어요`;
+  } else if (totalVisitors >= 100) {
+    companionshipMessage = `지금까지 ${totalVisitors.toLocaleString()}명이 다녀간 곳이에요`;
+  }
+
   return NextResponse.json({
-    totalVisitors: totalSnap.data().count,
-    weeklyVisitors: weekSnap.data().count,
+    totalVisitors,
+    weeklyVisitors,
+    monthlyVisitors,
+    companionshipMessage,
   });
 }

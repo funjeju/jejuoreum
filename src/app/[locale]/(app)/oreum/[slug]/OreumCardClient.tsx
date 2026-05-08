@@ -62,6 +62,7 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
   const [merchants, setMerchants]         = useState<Merchant[]>([]);
   const [totalVisitors, setTotalVisitors] = useState<number | null>(null);
   const [weeklyVisitors, setWeeklyVisitors] = useState<number | null>(null);
+  const [companionshipMessage, setCompanionshipMessage] = useState<string | null>(null);
   const [activeNav, setActiveNav]         = useState<NavSection>("info");
 
   const sectionRefs: Record<NavSection, React.RefObject<HTMLDivElement | null>> = {
@@ -93,6 +94,7 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
       .then((data) => {
         setTotalVisitors(data.totalVisitors ?? null);
         setWeeklyVisitors(data.weeklyVisitors ?? null);
+        setCompanionshipMessage(data.companionshipMessage ?? null);
       })
       .catch(() => {});
   }, [oreum.slug]);
@@ -283,12 +285,10 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
           <SectionHeader label="기본 정보" />
 
           {/* 협력감 메시지 */}
-          {totalVisitors !== null && totalVisitors > 0 && (
+          {companionshipMessage && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10 mb-4">
               <span className="text-sm">🥾</span>
-              <p className="text-xs text-primary font-medium">
-                지금까지 <span className="font-bold">{totalVisitors.toLocaleString()}명</span>이 이 오름을 다녀갔어요
-              </p>
+              <p className="text-xs text-primary font-medium">{companionshipMessage}</p>
             </div>
           )}
 
