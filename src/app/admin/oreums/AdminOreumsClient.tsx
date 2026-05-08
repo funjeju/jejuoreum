@@ -369,6 +369,13 @@ export default function AdminOreumsClient() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
+                        {o.isPublished && (
+                          <Link href={`/ko/oreum/${o.slug}`} target="_blank">
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-blue-500 hover:text-blue-600">
+                              <Eye size={12} className="mr-1" />보기
+                            </Button>
+                          </Link>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
