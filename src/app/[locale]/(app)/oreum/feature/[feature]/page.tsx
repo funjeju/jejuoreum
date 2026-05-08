@@ -62,7 +62,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title,
     description: desc,
     openGraph: { title, description: desc, type: "website" },
-    alternates: { canonical: `/${locale}/oreum/feature/${feature}` },
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/oreum/feature/${feature}`,
+      languages: {
+        ko: `${BASE_URL}/ko/oreum/feature/${feature}`,
+        en: `${BASE_URL}/en/oreum/feature/${feature}`,
+        ja: `${BASE_URL}/ja/oreum/feature/${feature}`,
+        zh: `${BASE_URL}/zh/oreum/feature/${feature}`,
+        "x-default": `${BASE_URL}/ko/oreum/feature/${feature}`,
+      },
+    },
   };
 }
 

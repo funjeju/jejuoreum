@@ -42,7 +42,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: { card: "summary_large_image", title, description: desc },
     alternates: {
-      canonical: `/${locale}/oreum/${slug}`,
+      canonical: `${BASE_URL}/${locale}/oreum/${slug}`,
+      languages: {
+        ko: `${BASE_URL}/ko/oreum/${slug}`,
+        en: `${BASE_URL}/en/oreum/${slug}`,
+        ja: `${BASE_URL}/ja/oreum/${slug}`,
+        zh: `${BASE_URL}/zh/oreum/${slug}`,
+        "x-default": `${BASE_URL}/ko/oreum/${slug}`,
+      },
     },
   };
 }
