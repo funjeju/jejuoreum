@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft, Share2, CheckCircle2, Heart, MapPin, Clock, Mountain,
-  Pencil, X, Check, Camera, MessageSquare, Navigation,
+  Pencil, X, Check, Camera, MessageSquare, Navigation, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getDiscovery, addToWishlist, updateDiscoveryNote, getUserProfile } from "@/lib/firestore/users";
@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { Oreum, OreumCard, UserDiscovery, Comment, Photo, UserProfile, Merchant } from "@/types";
+import type { Oreum, OreumCard, UserDiscovery, Comment, Photo, UserProfile, Merchant, SeoSection } from "@/types";
 
 const HERO_FULL = 320;
 const HERO_MIN  = 72;
@@ -50,7 +50,7 @@ const NAV_ITEMS: { key: NavSection; label: string }[] = [
   { key: "my",      label: "내기록" },
 ];
 
-export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
+export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Oreum; seoSections?: SeoSection[] }) {
   const locale    = useLocale();
   const router    = useRouter();
   const { user }  = useAuth();
@@ -326,6 +326,17 @@ export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
             </div>
           )}
 
+          {oreum.mbti && (
+            <Link href={`/${locale}/quiz/result/${oreum.mbti.toLowerCase()}`} className="mt-4 flex items-center gap-2.5 p-3 rounded-xl bg-primary/5 border border-primary/10 hover:border-primary/30 transition-colors">
+              <span className="text-base">🧠</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">이 오름의 MBTI</p>
+                <p className="text-sm font-bold text-primary">{oreum.mbti}</p>
+              </div>
+              <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+            </Link>
+          )}
+
           {oreum.hasAccessRestriction && oreum.accessNotes && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 mt-4">
               <p className="text-amber-800 text-xs font-semibold mb-0.5">주의</p>
@@ -333,6 +344,14 @@ export default function OreumCardClient({ oreum }: { oreum: Oreum }) {
             </div>
           )}
         </section>
+
+        {/* SEO 콘텐츠 섹션 (관리자가 발행한 상세 설명) */}
+        {seoSections.length > 0 && seoSections.map((section) => (
+          <section key={section.key}>
+            <SectionHeader label={section.titleKo} />
+            <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">{section.bodyKo}</p>
+          </section>
+        ))}
 
         {/* 섹션 2: 탐방 정보 */}
         <section ref={sectionRefs.trail}>

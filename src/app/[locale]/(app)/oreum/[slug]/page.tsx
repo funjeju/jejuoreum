@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import Script from "next/script";
 import { adminGetOreumBySlug } from "@/lib/firestore/admin-oreums";
 import { adminGetRatingSummary } from "@/lib/firestore/admin-comments";
+import { adminGetSeoContent } from "@/lib/firestore/admin-seo";
 import OreumCardClient from "./OreumCardClient";
 import type { Metadata } from "next";
-import type { Oreum } from "@/types";
+import type { Oreum, SeoSection } from "@/types";
 
 const BASE_URL = "https://jejuoreum.com";
 
@@ -120,11 +121,17 @@ export const dynamic = "force-dynamic";
 
 export default async function OreumPage({ params }: Props) {
   const { slug, locale } = await params;
-  const [oreum, rating] = await Promise.all([
+  const [oreum, rating, seoContent] = await Promise.all([
     adminGetOreumBySlug(slug),
     adminGetRatingSummary(slug).catch(() => null),
+    adminGetSeoContent(slug).catch(() => null),
   ]);
   if (!oreum) notFound();
+
+  const seoSections: SeoSection[] =
+    seoContent?.isPublished
+      ? seoContent.sections.filter((s) => s.bodyKo.trim())
+      : [];
 
   const jsonLdData = buildJsonLd(oreum, locale, rating);
 
@@ -138,7 +145,7 @@ export default async function OreumPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <OreumCardClient oreum={oreum} />
+      <OreumCardClient oreum={oreum} seoSections={seoSections} />
     </>
   );
 }
