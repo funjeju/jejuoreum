@@ -781,6 +781,88 @@ function EditForm({
         </div>
       </section>
 
+      <Separator />
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">추천 시즌</h3>
+        <div className="flex flex-wrap gap-2">
+          {(["spring", "summer", "autumn", "winter"] as const).map((s) => {
+            const label = { spring: "봄", summer: "여름", autumn: "가을", winter: "겨울" }[s];
+            const checked = oreum.recommendedSeasons.includes(s);
+            return (
+              <label key={s} className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    set("recommendedSeasons", checked
+                      ? oreum.recommendedSeasons.filter((x) => x !== s)
+                      : [...oreum.recommendedSeasons, s])
+                  }
+                />
+                <span className="text-sm">{label}</span>
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">추천 시간대</h3>
+        <div className="flex flex-wrap gap-2">
+          {(["dawn", "morning", "noon", "afternoon", "evening", "night"] as const).map((t) => {
+            const label = { dawn: "새벽(일출)", morning: "오전", noon: "낮", afternoon: "오후", evening: "저녁(일몰)", night: "야간" }[t];
+            const checked = oreum.recommendedTimes.includes(t);
+            return (
+              <label key={t} className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    set("recommendedTimes", checked
+                      ? oreum.recommendedTimes.filter((x) => x !== t)
+                      : [...oreum.recommendedTimes, t])
+                  }
+                />
+                <span className="text-sm">{label}</span>
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">특징</h3>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={oreum.hasCrater === true}
+            onChange={(e) => set("hasCrater", e.target.checked || null)}
+          />
+          <span className="text-sm">분화구 있음 (hasCrater)</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={oreum.isPrivateLand}
+            onChange={(e) => set("isPrivateLand", e.target.checked)}
+          />
+          <span className="text-sm">사유지 (isPrivateLand)</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={oreum.hasAccessRestriction}
+            onChange={(e) => set("hasAccessRestriction", e.target.checked)}
+          />
+          <span className="text-sm">출입 제한 (hasAccessRestriction)</span>
+        </label>
+      </section>
+
       <div className="flex gap-2 justify-end pt-2">
         <Button variant="outline" onClick={onCancel}>취소</Button>
         <Button onClick={onSave} disabled={loading}>
