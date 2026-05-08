@@ -82,9 +82,11 @@ export interface CsvOreumRow {
 
 export async function adminGetPublishedOreumCards(opts: {
   region?: Region;
+  tier?: Tier;
 } = {}): Promise<{ id: string; slug: string; nameKo: string; region: Region; tier: Tier | null; tierOrder: number | null; thumbnailUrl: string | null; difficulty: number | null; elevationM: number | null; oneLinerKo: string | null }[]> {
   let q = adminDb.collection(COL).where("isPublished", "==", true).orderBy("tierOrder", "asc");
   if (opts.region) q = adminDb.collection(COL).where("isPublished", "==", true).where("region", "==", opts.region).orderBy("tierOrder", "asc") as typeof q;
+  if (opts.tier) q = adminDb.collection(COL).where("isPublished", "==", true).where("tier", "==", opts.tier).orderBy("tierOrder", "asc") as typeof q;
   const snap = await q.get();
   return snap.docs.map((d) => {
     const data = d.data();

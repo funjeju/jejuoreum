@@ -7,6 +7,11 @@ import { Header } from "@/components/layout/Header";
 import { Mountain, ChevronRight } from "lucide-react";
 import type { Region } from "@/types";
 
+const LEVEL_META = [
+  { level: "beginner", label: "비기너", desc: "초보자도 쉽게 오를 수 있는 30선", tier: "beginner" as const },
+  { level: "explorer", label: "익스플로러", desc: "깊이 있는 탐험을 위한 70선",    tier: "explorer" as const },
+] as const;
+
 const BASE_URL = "https://jejuoreum.com";
 
 const REGION_META: Record<Region, { label: string; desc: string }> = {
@@ -46,6 +51,13 @@ export default async function OreumHubPage({ params }: Props) {
     items: oreums.filter((o) => o.region === region),
   }));
 
+  const byLevel = LEVEL_META.map(({ level, label, desc, tier }) => ({
+    level,
+    label,
+    desc,
+    items: oreums.filter((o) => o.tier === tier),
+  }));
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -75,7 +87,7 @@ export default async function OreumHubPage({ params }: Props) {
         <div className="bg-header px-4 pt-4 pb-10">
           <div className="max-w-lg mx-auto">
             <p className="text-white/60 text-sm mt-1">
-              제주의 {oreums.length}개 오름을 지역별로 탐험하세요
+              제주의 {oreums.length}개 오름을 지역별·난이도별로 탐험하세요
             </p>
           </div>
         </div>
@@ -133,6 +145,28 @@ export default async function OreumHubPage({ params }: Props) {
               </div>
             </Link>
           ))}
+
+          {/* 난이도 카테고리 */}
+          <div className="pt-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">난이도별</p>
+            <div className="grid grid-cols-2 gap-3">
+              {byLevel.map(({ level, label, desc, items }) => (
+                <Link key={level} href={`/${locale}/oreum/level/${level}`}>
+                  <div className="bg-card border border-border rounded-2xl p-4 hover:border-primary/40 transition-colors h-full">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Mountain size={16} className="text-primary shrink-0" />
+                      <span className="font-bold text-sm text-foreground">{label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{items.length}개</span>
+                      <ChevronRight size={14} className="text-muted-foreground" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
 
           {/* SEO 텍스트 */}
           <div className="bg-muted/40 rounded-2xl p-4 mt-2">
