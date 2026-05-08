@@ -151,6 +151,8 @@ export const BADGE_SEED: Omit<Badge, "id">[] = [
   { code: "sunrise_chaser",        nameKo: "일출 추적자",           descriptionKo: "일출 시간대에 오름 3개를 발견했어요",      iconType: "sunrise",    condition: { type: "time_count", timeKey: "dawn", value: 3 },                  tier: "gold" },
   { code: "sunset_lover",          nameKo: "일몰 애호가",           descriptionKo: "일몰 시간대에 오름 3개를 발견했어요",      iconType: "sunset",     condition: { type: "time_count", timeKey: "evening", value: 3 },              tier: "gold" },
   { code: "night_walker",          nameKo: "야간 산책자",           descriptionKo: "야간에 오름을 발견했어요",                 iconType: "moon",       condition: { type: "time_count", timeKey: "night", value: 1 },                 tier: "silver" },
+  // 마스터 완등 (서버 사이드 체크 전용 — evaluateAndAwardBadges에서는 건너뜀)
+  { code: "oreum_master_complete", nameKo: "제주 오름 마스터", descriptionKo: "모든 마스터 오름을 완등했어요", iconType: "crown_master", condition: { type: "master_tier_complete" }, tier: "platinum" as const },
   // 기여
   { code: "recorder",              nameKo: "기록자",               descriptionKo: "사진 10장이 승인됐어요",                   iconType: "camera",     condition: { type: "photo_count", value: 10 },                                  tier: "bronze" },
   { code: "archivist",             nameKo: "아카이비스트",          descriptionKo: "사진 50장이 승인됐어요",                   iconType: "archive",    condition: { type: "photo_count", value: 50 },                                  tier: "silver" },

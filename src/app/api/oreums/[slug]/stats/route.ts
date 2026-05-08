@@ -9,7 +9,9 @@ export async function GET(
   const sevenDaysAgo  = new Date(Date.now() - 7  * 24 * 60 * 60 * 1000).toISOString();
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [totalSnap, weekSnap, monthSnap] = await Promise.all([
+  const now = new Date().toISOString();
+
+  const [totalSnap, weekSnap, monthSnap, alertsSnap] = await Promise.all([
     adminDb.collectionGroup("discoveries").where("oreumSlug", "==", slug).count().get(),
     adminDb.collectionGroup("discoveries")
       .where("oreumSlug", "==", slug)
@@ -21,11 +23,23 @@ export async function GET(
       .where("discoveredAt", ">=", thirtyDaysAgo)
       .count()
       .get(),
+    adminDb
+      .collection("trendAlerts")
+      .where("oreumSlug", "==", slug)
+      .where("isActive", "==", true)
+      .where("activeTo", ">=", now)
+      .limit(3)
+      .get(),
   ]);
 
   const totalVisitors   = totalSnap.data().count;
   const weeklyVisitors  = weekSnap.data().count;
   const monthlyVisitors = monthSnap.data().count;
+  const trendAlerts = alertsSnap.docs.map((d) => ({
+    id: d.id,
+    alertType: d.data().alertType,
+    message: d.data().approvedMessage ?? d.data().autoMessage,
+  }));
 
   // Tiered companionship message (docs/20 section 3.3)
   let companionshipMessage: string | null = null;
@@ -44,5 +58,6 @@ export async function GET(
     weeklyVisitors,
     monthlyVisitors,
     companionshipMessage,
+    trendAlerts,
   });
 }

@@ -68,6 +68,8 @@ export interface UserProfile {
   avatarUrl: string | null;
   oreumMbti: string | null;
   bio: string | null;
+  followerCount?: number;
+  followingCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -130,6 +132,7 @@ export interface FeedEvent {
   oreumId: string | null;
   oreumSlug: string | null;
   oreumNameKo: string | null;
+  oreumRegion: Region | null;
   badgeCode: string | null;
   badgeNameKo: string | null;
   visibility: "public" | "private";
@@ -174,6 +177,8 @@ export interface Comment {
   commentType: "tip" | "review" | "warning" | "photo_caption" | null;
   isPublic: boolean;
   isPromotedToTip: boolean;
+  likeCount: number;
+  likedBy: string[];
   createdAt: string;
 }
 
@@ -230,6 +235,26 @@ export interface SeoSection {
   bodyKo: string;
 }
 
+// ── 트렌드 알림 ──────────────────────────────────────────────
+export interface TrendAlert {
+  id: string;
+  oreumSlug: string;
+  oreumNameKo: string;
+  alertType: string;
+  detectedKeywords: string[];
+  relatedCommentCount: number;
+  confidence: number;
+  autoMessage: string;
+  approvedMessage: string | null;
+  status: "pending" | "approved" | "ignored";
+  isActive: boolean;
+  activeFrom: string | null;
+  activeTo: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  detectedAt: string;
+}
+
 // ── 제휴 상권 ────────────────────────────────────────────────
 export type MerchantType = "cafe" | "restaurant" | "guesthouse" | "convenience" | "shop" | "rentcar" | "experience" | "other";
 
@@ -254,6 +279,101 @@ export interface Merchant {
   isPublished: boolean;
   isFeatured: boolean;
   partnershipStatus: "pending" | "active" | "inactive" | "expired" | "terminated";
+  portalToken: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── 굿즈 커머스 ──────────────────────────────────────────────
+export type GoodsCategory = "apparel" | "sticker" | "postcard" | "print" | "accessory" | "digital" | "other";
+
+export interface Goods {
+  id: string;
+  nameKo: string;
+  descriptionKo: string | null;
+  price: number;
+  originalPrice: number | null;
+  imageUrls: string[];
+  category: GoodsCategory;
+  stock: number | null;
+  isPublished: boolean;
+  isLimitedEdition: boolean;
+  unlockedByChallengeCode: string | null;
+  relatedOreumSlug: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderItem {
+  goodsId: string;
+  nameKo: string;
+  price: number;
+  quantity: number;
+  imageUrl: string | null;
+}
+
+export interface Order {
+  id: string;
+  uid: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: "pending" | "paid" | "preparing" | "shipped" | "delivered" | "cancelled" | "refunded";
+  paymentKey: string | null;
+  ordererName: string;
+  ordererPhone: string;
+  deliveryAddress: string;
+  deliveryMemo: string | null;
+  trackingNumber: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 시즌 배지 ────────────────────────────────────────────────
+export type SeasonBadgeConditionType =
+  | "any_discovery"
+  | "discovery_count"
+  | "region_count"
+  | "specific_oreums";
+
+export interface SeasonBadgeCondition {
+  type: SeasonBadgeConditionType;
+  count?: number;
+  region?: Region;
+  oreumSlugs?: string[];
+}
+
+export interface SeasonBadge {
+  id: string;
+  code: string;
+  nameKo: string;
+  descriptionKo: string;
+  iconEmoji: string;
+  tier: Badge["tier"];
+  condition: SeasonBadgeCondition;
+  seasonStart: string;  // ISO date string
+  seasonEnd: string;    // ISO date string
+  isActive: boolean;
+  earnedCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 알림 ─────────────────────────────────────────────────────
+export type NotificationType =
+  | "badge_earned"
+  | "season_badge_earned"
+  | "new_follower"
+  | "friend_discovery_wishlist"
+  | "order_status_changed";
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link: string | null;
+  imageUrl: string | null;
+  isRead: boolean;
+  createdAt: string;
 }

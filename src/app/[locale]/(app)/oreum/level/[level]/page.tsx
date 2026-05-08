@@ -10,27 +10,37 @@ import type { Tier } from "@/types";
 
 const BASE_URL = "https://jejuoreum.com";
 
-const LEVEL_META: Record<"beginner" | "explorer", {
+const LEVEL_META: Record<"beginner" | "explorer" | "master", {
   label: string;
   labelEn: string;
   desc: string;
   longDesc: string;
+  accentClass: string;
 }> = {
   beginner: {
     label: "비기너",
     labelEn: "Beginner",
     desc: "초보자도 쉽게 오를 수 있는 비기너 오름 30선",
     longDesc: "비기너 오름은 탐방로가 잘 정비되어 있고 경사가 완만해 등산 초보자·가족 여행객도 부담 없이 즐길 수 있습니다. 평균 소요 시간은 왕복 30~60분으로, 제주 오름의 첫 걸음을 내딛기에 최적의 코스입니다.",
+    accentClass: "from-emerald-600 to-emerald-800",
   },
   explorer: {
     label: "익스플로러",
     labelEn: "Explorer",
     desc: "깊이 있는 탐험을 원하는 이를 위한 익스플로러 오름 70선",
     longDesc: "익스플로러 오름은 다양한 생태·지질·경관을 담은 심화 탐방 코스입니다. 일부 오름은 경사가 가파르거나 비포장 탐방로를 포함하며, 왕복 1~3시간이 소요됩니다. 제주 오름의 진수를 경험하고 싶은 탐험가에게 추천합니다.",
+    accentClass: "from-blue-700 to-blue-900",
+  },
+  master: {
+    label: "마스터",
+    labelEn: "Master",
+    desc: "제주 오름의 진정한 고수를 위한 마스터 오름",
+    longDesc: "마스터 오름은 접근성이 낮거나 험준한 탐방로를 포함한 고난도 코스입니다. 일부는 사전 허가·가이드 동반이 필요하며, 계절·날씨에 따른 면밀한 준비가 필수입니다. 100오름 도전의 최후 관문으로, 모든 마스터 오름을 완등한 탐험가에게는 특별한 마스터 배지가 수여됩니다.",
+    accentClass: "from-purple-700 to-purple-900",
   },
 };
 
-const VALID_LEVELS = Object.keys(LEVEL_META) as Array<"beginner" | "explorer">;
+const VALID_LEVELS = Object.keys(LEVEL_META) as Array<"beginner" | "explorer" | "master">;
 
 interface Props {
   params: Promise<{ locale: string; level: string }>;
@@ -38,8 +48,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, level } = await params;
-  if (!VALID_LEVELS.includes(level as "beginner" | "explorer")) return {};
-  const meta = LEVEL_META[level as "beginner" | "explorer"];
+  if (!VALID_LEVELS.includes(level as "beginner" | "explorer" | "master")) return {};
+  const meta = LEVEL_META[level as "beginner" | "explorer" | "master"];
   const title = `제주 ${meta.label} 오름 — ${meta.desc} | 제주 오름 패스포트`;
   const desc = meta.longDesc;
   return {
@@ -63,9 +73,9 @@ export const dynamic = "force-dynamic";
 
 export default async function LevelPage({ params }: Props) {
   const { locale, level } = await params;
-  if (!VALID_LEVELS.includes(level as "beginner" | "explorer")) notFound();
+  if (!VALID_LEVELS.includes(level as "beginner" | "explorer" | "master")) notFound();
 
-  const typedLevel = level as "beginner" | "explorer";
+  const typedLevel = level as "beginner" | "explorer" | "master";
   const meta = LEVEL_META[typedLevel];
   const oreums = await adminGetPublishedOreumCards({ tier: typedLevel as Tier }).catch(() => []);
 
@@ -104,7 +114,7 @@ export default async function LevelPage({ params }: Props) {
       <div className="min-h-screen bg-background pb-28">
         <Header title={`${meta.label} 오름`} />
 
-        <div className="bg-header px-4 pt-3 pb-10">
+        <div className={`bg-gradient-to-br ${meta.accentClass} px-4 pt-3 pb-10`}>
           <div className="max-w-lg mx-auto">
             <Link href={`/${locale}/oreum`} className="inline-flex items-center gap-1 text-white/60 text-xs mb-2 hover:text-white/80">
               <ChevronLeft size={14} />
@@ -112,6 +122,17 @@ export default async function LevelPage({ params }: Props) {
             </Link>
             <p className="text-white/70 text-sm">{meta.longDesc}</p>
             <p className="text-white/50 text-xs mt-2">{oreums.length}개 오름</p>
+            {typedLevel === "master" && (
+              <div className="mt-3 bg-white/10 border border-white/20 rounded-xl px-4 py-3 flex items-start gap-3">
+                <span className="text-2xl mt-0.5">🏆</span>
+                <div>
+                  <p className="text-white text-xs font-bold mb-0.5">마스터 완등 배지</p>
+                  <p className="text-white/60 text-[11px] leading-relaxed">
+                    모든 마스터 오름을 발견하면 <strong className="text-white/80">제주 오름 마스터</strong> 특별 배지가 수여됩니다.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -136,8 +157,8 @@ export default async function LevelPage({ params }: Props) {
                           sizes="(max-width: 512px) 50vw, 256px"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                          <span className="text-3xl font-bold text-primary/20">{oreum.nameKo[0]}</span>
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                          <span className="text-3xl font-bold text-white/40">{oreum.nameKo[0]}</span>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

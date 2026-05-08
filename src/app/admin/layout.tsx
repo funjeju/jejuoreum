@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store } from "lucide-react";
+import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store, Inbox, TrendingUp, Flag, Upload, ShoppingBag, Sparkles, BarChart2 } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 
@@ -13,12 +13,19 @@ const NAV = [
   { href: "/admin/oreums",              icon: List,            label: "오름 관리" },
   { href: "/admin/oreums/mbti-mapping", icon: Mountain,        label: "MBTI 매핑" },
   { href: "/admin/oreums/validate",     icon: ShieldAlert,     label: "검증 리포트" },
+  { href: "/admin/trend-alerts",         icon: TrendingUp,      label: "트렌드 알림" },
   { href: "/admin/photos/queue",        icon: Camera,          label: "사진 큐" },
   { href: "/admin/comments/queue",      icon: MessageSquare,   label: "코멘트 큐" },
   { href: "/admin/seo-contents",        icon: FileText,        label: "SEO 콘텐츠" },
   { href: "/admin/merchants",            icon: Store,           label: "제휴 상권" },
+  { href: "/admin/merchants/applications", icon: Inbox,         label: "입점 신청" },
   { href: "/admin/challenges",          icon: CheckCircle2,    label: "챌린지" },
+  { href: "/admin/reports",             icon: Flag,            label: "신고 처리" },
+  { href: "/admin/bulk-import",         icon: Upload,          label: "일괄 업로드" },
+  { href: "/admin/goods",               icon: ShoppingBag,     label: "굿즈·주문" },
+  { href: "/admin/season-badges",       icon: Sparkles,        label: "시즌 배지" },
   { href: "/admin/users",               icon: Users,           label: "사용자" },
+  { href: "/admin/analytics",           icon: BarChart2,       label: "분석" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router   = useRouter();
   const [checking, setChecking] = useState(true);
 
-  const isLoginPage = pathname === "/admin/login";
+  const isLoginPage = pathname === "/admin/login" || pathname == null;
 
   useEffect(() => {
     if (isLoginPage) { setChecking(false); return; }
@@ -63,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={href}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                pathname === href
+                pathname != null && pathname === href
                   ? "bg-white/15 text-white"
                   : "text-white/60 hover:bg-white/10 hover:text-white"
               )}

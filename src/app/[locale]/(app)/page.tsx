@@ -12,6 +12,7 @@ import { getUserChallenges } from "@/lib/firestore/challenges";
 import { getPublicFeed } from "@/lib/firestore/feed";
 import { Header } from "@/components/layout/Header";
 import { RecommendationHeroCard } from "@/components/home/RecommendationHeroCard";
+import { FriendRecommendations } from "@/components/feed/FriendRecommendations";
 import { ProgressOverviewCard } from "@/components/home/ProgressOverviewCard";
 import { QuickVerifyCard } from "@/components/home/QuickVerifyCard";
 import { CollectionStatsCard } from "@/components/collection/CollectionStatsCard";
@@ -66,32 +67,34 @@ export default function HomePage() {
 
   useEffect(() => {
     (async () => {
-      const [cards, feed] = await Promise.all([
-        getOreumCards({ top100Only: true, limitCount: 10 }),
-        getPublicFeed({ limitCount: 5 }),
-      ]);
-      setFeatured(cards);
-      setFeedEvents(feed);
-
-      fetch("/api/oreums/popular")
-        .then((r) => r.json())
-        .then(setPopularOreums)
-        .catch(() => {});
-
-      if (user) {
-        const [p, d, w, challenges] = await Promise.all([
-          getUserProfile(user.uid),
-          getUserDiscoveries(user.uid),
-          getWishlist(user.uid),
-          getUserChallenges(user.uid),
+      try {
+        const [cards, feedResult] = await Promise.all([
+          getOreumCards({ top100Only: true, limitCount: 10 }).catch((): OreumCard[] => []),
+          getPublicFeed({ limitCount: 5 }).catch(() => ({ events: [] as FeedEvent[], cursor: null })),
         ]);
-        setProfile(p);
-        setDiscoveries(d);
-        setWishlist(w);
-        const inProgress = challenges.find((c) => !c.isCompleted) ?? null;
-        setActiveChallenge(inProgress);
+        setFeatured(cards);
+        setFeedEvents(feedResult.events);
+
+        fetch("/api/oreums/popular")
+          .then((r) => r.json())
+          .then(setPopularOreums)
+          .catch(() => {});
+
+        if (user) {
+          const [p, d, w, ch] = await Promise.all([
+            getUserProfile(user.uid).catch((): UserProfile | null => null),
+            getUserDiscoveries(user.uid).catch((): UserDiscovery[] => []),
+            getWishlist(user.uid).catch((): WishlistItem[] => []),
+            getUserChallenges(user.uid).catch((): UserChallenge[] => []),
+          ]);
+          setProfile(p);
+          setDiscoveries(d);
+          setWishlist(w);
+          setActiveChallenge(ch.find((c) => !c.isCompleted) ?? null);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [user]);
 
@@ -227,8 +230,8 @@ export default function HomePage() {
                         sizes="128px"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                        <Mountain size={28} className="text-primary/30" />
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                        <Mountain size={28} className="text-white/40" />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -242,6 +245,9 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        {/* 친구 추천 동선 */}
+        <FriendRecommendations />
 
         {/* 오늘의 추천 오름 히어로 카드 */}
         {!loading && recommendation && (
@@ -283,8 +289,8 @@ export default function HomePage() {
                           sizes="130px"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                          <Mountain size={28} className="text-primary/20" />
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                          <Mountain size={28} className="text-white/40" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
@@ -348,8 +354,8 @@ export default function HomePage() {
                           sizes="112px"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                          <span className="text-2xl font-bold text-primary/30">{oreum.nameKo[0]}</span>
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                          <span className="text-2xl font-bold text-white/40">{oreum.nameKo[0]}</span>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

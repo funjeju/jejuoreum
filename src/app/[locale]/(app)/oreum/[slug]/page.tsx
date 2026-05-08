@@ -18,7 +18,8 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug, locale } = await params;
+  const { slug: rawSlug, locale } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const oreum = await adminGetOreumBySlug(slug);
   if (!oreum) return {};
 
@@ -120,7 +121,8 @@ function buildJsonLd(
 export const dynamic = "force-dynamic";
 
 export default async function OreumPage({ params }: Props) {
-  const { slug, locale } = await params;
+  const { slug: rawSlug, locale } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const [oreum, rating, seoContent] = await Promise.all([
     adminGetOreumBySlug(slug),
     adminGetRatingSummary(slug).catch(() => null),

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { User, Award, Mountain, LogOut, ChevronRight, Leaf } from "lucide-react";
+import { User, Award, Mountain, LogOut, ChevronRight, Leaf, Settings, BarChart2 } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserProfile, getUserDiscoveries } from "@/lib/firestore/users";
@@ -100,7 +100,7 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
           )}
-          <div>
+          <div className="flex-1">
             {loading ? (
               <Skeleton className="h-5 w-32 mb-1" />
             ) : (
@@ -109,6 +109,18 @@ export default function ProfilePage() {
             <p className="text-white/50 text-xs mt-0.5">
               {profile?.oreumMbti ? `오름 유형 ${profile.oreumMbti}` : "오름 유형 미설정"}
             </p>
+            {!loading && (
+              <div className="flex items-center gap-4 mt-2">
+                <Link href={`/${locale}/profile/followers`} className="text-center hover:opacity-80">
+                  <p className="text-white text-sm font-bold">{profile?.followerCount ?? 0}</p>
+                  <p className="text-white/50 text-[10px]">팔로워</p>
+                </Link>
+                <Link href={`/${locale}/profile/following`} className="text-center hover:opacity-80">
+                  <p className="text-white text-sm font-bold">{profile?.followingCount ?? 0}</p>
+                  <p className="text-white/50 text-[10px]">팔로잉</p>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -213,9 +225,11 @@ export default function ProfilePage() {
         {/* 메뉴 */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
           {[
-            { icon: Mountain, label: "내 발견 목록", href: `/${locale}/collection` },
-            { icon: Award, label: "획득한 배지", href: `/${locale}/profile/badges` },
-            { icon: User, label: "프로필 편집", href: `/${locale}/profile/edit` },
+            { icon: Mountain,   label: "내 발견 목록",      href: `/${locale}/collection` },
+            { icon: BarChart2,  label: "탐험 통계",          href: `/${locale}/profile/stats` },
+            { icon: Award,      label: "획득한 배지",         href: `/${locale}/profile/badges` },
+            { icon: User,       label: "프로필 편집",         href: `/${locale}/profile/edit` },
+            { icon: Settings,   label: "알림 및 공개 설정",  href: `/${locale}/profile/settings` },
           ].map(({ icon: Icon, label, href }) => (
             <Link
               key={href}

@@ -107,6 +107,7 @@ export default function QrClient() {
           oreumId:       selectedOreum.id,
           oreumSlug:     selectedOreum.slug,
           oreumNameKo:   selectedOreum.nameKo,
+          oreumRegion:   selectedOreum.region,
           visibility:    "public",
           delayMin:      visibility === "delay_10min" ? 10 : 0,
         }).catch(() => {});
@@ -127,8 +128,23 @@ export default function QrClient() {
         setMonthCount(monthDiscs.length);
 
         const earned = await evaluateAndAwardBadges(user.uid, allDiscs);
-        if (earned.length > 0) {
-          setNewBadges(earned.map((b) => b.nameKo));
+
+        // Check season badges + master complete badge (parallel)
+        const token = await user.getIdToken();
+        const headers = { Authorization: `Bearer ${token}` };
+        const [seasonRes, masterRes] = await Promise.all([
+          fetch("/api/season-badges/check", { method: "POST", headers }).then((r) => r.json()).catch(() => ({ awarded: [] })),
+          fetch("/api/me/check-master-badge",  { method: "POST", headers }).then((r) => r.json()).catch(() => ({ awarded: false })),
+        ]);
+
+        const allEarned = [
+          ...earned.map((b) => b.nameKo),
+          ...(seasonRes.awarded as string[]),
+          ...(masterRes.awarded ? ["제주 오름 마스터 🏆"] : []),
+        ];
+
+        if (allEarned.length > 0) {
+          setNewBadges(allEarned);
           localStorage.setItem("badge_notification", "1");
         }
 

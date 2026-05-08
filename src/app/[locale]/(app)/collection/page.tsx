@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { getOreumCards } from "@/lib/firestore/oreums";
 import { getUserDiscoveries } from "@/lib/firestore/users";
 import { CollectionStatsCard } from "@/components/collection/CollectionStatsCard";
+import { SeasonBadgeBanner } from "@/components/season/SeasonBadgeBanner";
 import { Header } from "@/components/layout/Header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -96,8 +97,13 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* 본문 -mt-4 */}
-      <div className="max-w-lg mx-auto px-4 -mt-4">
+      {/* 시즌 배지 배너 */}
+      <div className="max-w-lg mx-auto mt-3">
+        <SeasonBadgeBanner />
+      </div>
+
+      {/* 본문 -mt-1 */}
+      <div className="max-w-lg mx-auto px-4 -mt-1">
         <Tabs defaultValue="beginner" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-card border border-border rounded-xl h-auto p-1">
             <TabsTrigger
@@ -242,8 +248,8 @@ function OreumGrid({ oreums, discSet, locale, loading }: {
                     sizes="(max-width: 512px) 33vw, 170px"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-primary/20">{oreum.nameKo[0]}</span>
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white/40">{oreum.nameKo[0]}</span>
                   </div>
                 )}
               </div>

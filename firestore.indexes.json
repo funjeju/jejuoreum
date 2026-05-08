@@ -1,0 +1,177 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibility",  "order": "ASCENDING" },
+        { "fieldPath": "occurredAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibility",  "order": "ASCENDING" },
+        { "fieldPath": "oreumRegion", "order": "ASCENDING" },
+        { "fieldPath": "occurredAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid",         "order": "ASCENDING" },
+        { "fieldPath": "occurredAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "oreumSlug",   "order": "ASCENDING" },
+        { "fieldPath": "eventType",   "order": "ASCENDING" },
+        { "fieldPath": "visibility",  "order": "ASCENDING" },
+        { "fieldPath": "occurredAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oreums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "tierOrder",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oreums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "region",      "order": "ASCENDING" },
+        { "fieldPath": "tierOrder",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oreums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "tier",        "order": "ASCENDING" },
+        { "fieldPath": "tierOrder",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oreums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "hasCrater",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oreums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "location.lat", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid",         "order": "ASCENDING" },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "photos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "oreumSlug",   "order": "ASCENDING" },
+        { "fieldPath": "isApproved",  "order": "ASCENDING" },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "photos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",      "order": "ASCENDING" },
+        { "fieldPath": "isApproved",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "oreumSlug",   "order": "ASCENDING" },
+        { "fieldPath": "isPublic",    "order": "ASCENDING" },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "seasonBadges",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive",    "order": "ASCENDING" },
+        { "fieldPath": "seasonStart", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "merchants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished",        "order": "ASCENDING" },
+        { "fieldPath": "relatedOreumSlugs",  "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
+      "collectionGroup": "discoveries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "oreumSlug",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "discoveries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "discoveredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "discoveries",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "oreumTier",   "order": "ASCENDING" },
+        { "fieldPath": "discoveredAt","order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "isRead",      "order": "ASCENDING" },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "createdAt",   "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

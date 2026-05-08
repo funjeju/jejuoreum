@@ -5,7 +5,7 @@ import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Trophy, Lock } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getUserBadges, getAllBadges, BADGE_SEED } from "@/lib/firestore/badges";
+import { getUserBadges, BADGE_SEED } from "@/lib/firestore/badges";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

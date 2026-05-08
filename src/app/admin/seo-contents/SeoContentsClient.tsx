@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, FileText, Loader2, Check, Globe } from "lucide-react";
+import { Search, FileText, Loader2, Check, Globe, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SeoContent, SeoSection } from "@/types";
 
@@ -34,6 +34,7 @@ export default function SeoContentsClient() {
   const [filterStatus, setFilter]   = useState<"all" | "published" | "draft">("all");
   const [editing, setEditing]       = useState<SeoContent | null>(null);
   const [saving, setSaving]         = useState(false);
+  const [enhancing, setEnhancing]   = useState<string | null>(null); // section key being enhanced
 
   const fetchContents = async () => {
     setLoading(true);
@@ -72,6 +73,33 @@ export default function SeoContentsClient() {
       setEditing(null);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAiEnhance = async (sectionIdx: number, instruction: string) => {
+    if (!editing) return;
+    const section = editing.sections[sectionIdx];
+    setEnhancing(section.key);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/seo-contents/ai-enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          oreumNameKo: editing.oreumNameKo,
+          sectionTitle: section.titleKo,
+          currentText: section.bodyKo,
+          instruction,
+        }),
+      });
+      if (res.ok) {
+        const { enhanced } = await res.json();
+        const sections = [...editing.sections];
+        sections[sectionIdx] = { ...sections[sectionIdx], bodyKo: enhanced };
+        setEditing({ ...editing, sections });
+      }
+    } finally {
+      setEnhancing(null);
     }
   };
 
@@ -252,7 +280,31 @@ export default function SeoContentsClient() {
                   <p className="text-sm font-semibold">콘텐츠 섹션</p>
                   {(editing.sections ?? DEFAULT_SECTIONS).map((section, i) => (
                     <div key={section.key} className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">{section.titleKo}</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">{section.titleKo}</Label>
+                        <div className="flex items-center gap-1">
+                          {enhancing === section.key ? (
+                            <Loader2 size={12} className="animate-spin text-primary" />
+                          ) : (
+                            <div className="flex gap-1">
+                              {[
+                                { key: "expand",       label: "확장" },
+                                { key: "shorten",      label: "요약" },
+                                { key: "tone_emotion", label: "감성" },
+                                { key: "keyword",      label: "SEO" },
+                              ].map((opt) => (
+                                <button
+                                  key={opt.key}
+                                  onClick={() => handleAiEnhance(i, opt.key)}
+                                  className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                >
+                                  <Sparkles size={9} /> {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <textarea
                         value={section.bodyKo}
                         onChange={(e) => {
@@ -264,6 +316,7 @@ export default function SeoContentsClient() {
                         rows={3}
                         className="w-full text-sm rounded-md border border-input bg-transparent px-3 py-2 resize-y outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground/50"
                       />
+                      <p className="text-[10px] text-muted-foreground text-right">{section.bodyKo.length}자</p>
                     </div>
                   ))}
                 </div>

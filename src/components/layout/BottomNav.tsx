@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Home, BookOpen, MapPin, Heart, User } from "lucide-react";
+import { Home, BookOpen, MapPin, ScanEye, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LEFT = [
@@ -13,8 +13,8 @@ const LEFT = [
 ] as const;
 
 const RIGHT = [
-  { key: "wishlist", href: "/wishlist", labelKey: "wishlist", Icon: Heart },
-  { key: "my",       href: "/profile",  labelKey: "my",       Icon: User },
+  { key: "ar", href: "/ar", labelKey: "ar", Icon: ScanEye },
+  { key: "my", href: "/profile", labelKey: "my", Icon: User },
 ] as const;
 
 export default function BottomNav() {
@@ -30,7 +30,7 @@ export default function BottomNav() {
 
   const isActive = (href: string) => {
     const full = `/${locale}${href}`;
-    return href === "/" ? pathname === full : pathname.startsWith(full);
+    return href === "/" ? pathname === full : (pathname?.startsWith(full) ?? false);
   };
 
   return (
@@ -94,7 +94,7 @@ export default function BottomNav() {
                 <Icon
                   size={22}
                   strokeWidth={active ? 2.2 : 1.7}
-                  fill={key === "wishlist" && active ? "currentColor" : "none"}
+                  fill="none"
                 />
                 {hasDot && (
                   <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />

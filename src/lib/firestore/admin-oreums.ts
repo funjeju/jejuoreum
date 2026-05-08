@@ -37,9 +37,19 @@ export async function adminGetOreum(id: string): Promise<Oreum | null> {
 }
 
 export async function adminGetOreumBySlug(slug: string): Promise<Oreum | null> {
+  const defaults = { emotionalKeywords: [], recommendedSeasons: [], recommendedTimes: [], altNames: [], photoUrls: [] };
   const snap = await adminDb.collection(COL).where("slug", "==", slug).limit(1).get();
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() } as Oreum;
+  if (!snap.empty) {
+    const d = snap.docs[0];
+    return { ...defaults, ...d.data(), id: d.id } as unknown as Oreum;
+  }
+  // slug 필드가 없거나 nameKo를 slug로 사용하는 경우 fallback
+  const byName = await adminDb.collection(COL).where("nameKo", "==", slug).limit(1).get();
+  if (!byName.empty) {
+    const d = byName.docs[0];
+    return { ...defaults, ...d.data(), id: d.id } as unknown as Oreum;
+  }
+  return null;
 }
 
 export async function adminUpdateOreum(id: string, data: Partial<Oreum>): Promise<void> {

@@ -8,8 +8,9 @@ import { Mountain, ChevronRight } from "lucide-react";
 import type { Region } from "@/types";
 
 const LEVEL_META = [
-  { level: "beginner", label: "비기너", desc: "초보자도 쉽게 오를 수 있는 30선", tier: "beginner" as const },
-  { level: "explorer", label: "익스플로러", desc: "깊이 있는 탐험을 위한 70선",    tier: "explorer" as const },
+  { level: "beginner", label: "비기너",      desc: "초보자도 쉽게 오를 수 있는 30선", tier: "beginner" as const },
+  { level: "explorer", label: "익스플로러",  desc: "깊이 있는 탐험을 위한 70선",    tier: "explorer" as const },
+  { level: "master",   label: "마스터 🏆",  desc: "진정한 고수를 위한 마스터 오름", tier: "master"   as const },
 ] as const;
 
 const SEASON_META = [
@@ -143,7 +144,7 @@ export default async function OreumHubPage({ params }: Props) {
                             sizes="80px"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                          <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
                             <span className="text-xs font-bold text-primary/30">{o.nameKo[0]}</span>
                           </div>
                         )}

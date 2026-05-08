@@ -1,6 +1,7 @@
 import {
   collection, addDoc, getDocs, query, where,
-  limit as firestoreLimit,
+  limit as firestoreLimit, doc, updateDoc,
+  arrayUnion, arrayRemove, increment,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { Comment } from "@/types";
@@ -23,6 +24,14 @@ export async function getOreumComments(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+}
+
+export async function toggleCommentLike(commentId: string, uid: string, liked: boolean): Promise<void> {
+  const ref = doc(db, "comments", commentId);
+  await updateDoc(ref, {
+    likedBy: liked ? arrayUnion(uid) : arrayRemove(uid),
+    likeCount: increment(liked ? 1 : -1),
+  });
 }
 
 export async function addComment(data: Omit<Comment, "id">): Promise<string> {

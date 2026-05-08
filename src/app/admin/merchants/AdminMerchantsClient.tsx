@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Store, Loader2, Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Search, Store, Loader2, Plus, Pencil, Trash2, ExternalLink, BarChart2, Link2, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Merchant, MerchantType } from "@/types";
 
@@ -45,6 +45,7 @@ const EMPTY_MERCHANT: Omit<Merchant, "id" | "createdAt" | "updatedAt"> = {
   businessHours: null, signatureItems: [],
   relatedOreumSlugs: [], primaryOreumSlug: null,
   isPublished: false, isFeatured: false, partnershipStatus: "pending",
+  portalToken: null,
 };
 
 export default function AdminMerchantsClient() {
@@ -56,6 +57,15 @@ export default function AdminMerchantsClient() {
   const [isNew, setIsNew]           = useState(false);
   const [saving, setSaving]         = useState(false);
   const [deleting, setDeleting]     = useState<string | null>(null);
+  const [statsId, setStatsId]       = useState<string | null>(null);
+  const [statsData, setStatsData]   = useState<{
+    merchantName: string;
+    estimatedReach: { weekly: number; monthly: number };
+    oreumStats: Array<{ slug: string; weeklyVisitors: number; monthlyVisitors: number; totalVisitors: number }>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const fetchMerchants = async () => {
     setLoading(true);
@@ -112,6 +122,49 @@ export default function AdminMerchantsClient() {
     } finally {
       setDeleting(null);
     }
+  };
+
+  const openStats = async (id: string) => {
+    setStatsId(id);
+    setStatsData(null);
+    setStatsLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/merchants/${id}/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setStatsData(await res.json());
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const generatePortalToken = async (id: string) => {
+    setGeneratingToken(id);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/merchants/${id}/portal-token`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const { token: portalToken } = await res.json();
+        const url = `${window.location.origin}/merchant-portal/${portalToken}`;
+        await navigator.clipboard.writeText(url);
+        setCopiedToken(id);
+        setTimeout(() => setCopiedToken(null), 3000);
+        await fetchMerchants();
+      }
+    } finally {
+      setGeneratingToken(null);
+    }
+  };
+
+  const copyPortalLink = async (portalToken: string, id: string) => {
+    const url = `${window.location.origin}/merchant-portal/${portalToken}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedToken(id);
+    setTimeout(() => setCopiedToken(null), 3000);
   };
 
   const openNew = () => {
@@ -222,6 +275,30 @@ export default function AdminMerchantsClient() {
                           <ExternalLink size={13} className="text-muted-foreground" />
                         </a>
                       )}
+                      <Button
+                        size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                        onClick={() => openStats(m.id)}
+                      >
+                        <BarChart2 size={12} />
+                      </Button>
+                      <Button
+                        size="sm" variant="ghost"
+                        className={cn("h-7 px-2 text-xs", copiedToken === m.id && "text-emerald-600")}
+                        title={m.portalToken ? "포털 링크 복사" : "포털 링크 생성"}
+                        disabled={generatingToken === m.id}
+                        onClick={() =>
+                          m.portalToken
+                            ? copyPortalLink(m.portalToken, m.id)
+                            : generatePortalToken(m.id)
+                        }
+                      >
+                        {generatingToken === m.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : copiedToken === m.id
+                          ? <Copy size={12} />
+                          : <Link2 size={12} />
+                        }
+                      </Button>
                       <Button
                         size="sm" variant="ghost" className="h-7 px-2 text-xs"
                         onClick={() => { setEditing(m); setIsNew(false); }}
@@ -401,6 +478,56 @@ export default function AdminMerchantsClient() {
                 </div>
               </div>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* 통계 다이얼로그 */}
+      <Dialog open={!!statsId} onOpenChange={(open) => { if (!open) { setStatsId(null); setStatsData(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{statsData?.merchantName ?? "통계"} — 방문자 추정</DialogTitle>
+          </DialogHeader>
+          {statsLoading ? (
+            <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div>
+          ) : statsData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/15 text-center">
+                  <p className="text-2xl font-bold text-primary">{statsData.estimatedReach.weekly.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">이번 주 인근 탐방자</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted border border-border text-center">
+                  <p className="text-2xl font-bold">{statsData.estimatedReach.monthly.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">최근 30일 인근 탐방자</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">* 관련 오름 탐방자 수 합산 (실제 방문자와 다를 수 있음)</p>
+              {statsData.oreumStats.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">관련 오름별 탐방자</p>
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-muted-foreground border-b">
+                      <th className="text-left py-1.5">오름</th>
+                      <th className="text-right py-1.5">이번 주</th>
+                      <th className="text-right py-1.5">30일</th>
+                      <th className="text-right py-1.5">누적</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-border">
+                      {statsData.oreumStats.map((o) => (
+                        <tr key={o.slug}>
+                          <td className="py-1.5 font-mono text-[11px] text-muted-foreground">{o.slug}</td>
+                          <td className="py-1.5 text-right">{o.weeklyVisitors}</td>
+                          <td className="py-1.5 text-right">{o.monthlyVisitors}</td>
+                          <td className="py-1.5 text-right">{o.totalVisitors}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-center py-8 text-muted-foreground text-sm">통계를 불러올 수 없어요</p>
           )}
         </DialogContent>
       </Dialog>

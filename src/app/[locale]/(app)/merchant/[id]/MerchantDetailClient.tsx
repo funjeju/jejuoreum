@@ -52,8 +52,8 @@ export default function MerchantDetailClient({ merchant }: { merchant: Merchant 
             sizes="(max-width: 512px) 100vw, 512px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-            <span className="text-6xl opacity-30">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-stone-600 to-stone-800">
+            <span className="text-6xl opacity-60">
               {merchant.merchantType === "cafe" ? "☕" : merchant.merchantType === "restaurant" ? "🍽️" : "🏪"}
             </span>
           </div>

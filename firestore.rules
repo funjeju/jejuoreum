@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── 헬퍼 ────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return isAuth() && request.auth.token.admin == true;
+    }
+
+    // ── 오름 (공개 읽기, 어드민 쓰기) ─────────────────────
+    match /oreums/{oreumId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 피드 (공개 읽기, 서버 사이드 쓰기) ────────────────
+    match /feed/{eventId} {
+      allow read: if resource.data.visibility == "public" || (isAuth() && resource.data.uid == request.auth.uid);
+      allow write: if false; // server-side only
+    }
+
+    // ── 댓글 (공개 오름 댓글 읽기, 인증 쓰기) ─────────────
+    match /comments/{commentId} {
+      allow read: if resource.data.isPublic == true || (isAuth() && resource.data.userId == request.auth.uid);
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ── 사진 (승인된 사진 공개 읽기) ──────────────────────
+    match /photos/{photoId} {
+      allow read: if resource.data.isApproved == true || (isAuth() && resource.data.userId == request.auth.uid);
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+    }
+
+    // ── 배지 (공개 읽기, 어드민 쓰기) ────────────────────
+    match /badges/{badgeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 시즌 배지 (공개 읽기) ─────────────────────────────
+    match /seasonBadges/{badgeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 챌린지 (공개 읽기) ───────────────────────────────
+    match /challenges/{challengeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 굿즈 (공개된 굿즈 읽기) ─────────────────────────
+    match /goods/{goodsId} {
+      allow read: if resource.data.isPublished == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ── 주문 (본인 읽기, 서버 사이드 생성) ───────────────
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuth() && resource.data.uid == request.auth.uid);
+      allow write: if false; // server-side only
+    }
+
+    // ── 상권 (공개된 상권 읽기) ───────────────────────────
+    match /merchants/{merchantId} {
+      allow read: if resource.data.isPublished == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ── SEO 콘텐츠 ────────────────────────────────────────
+    match /seoContents/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── 트렌드 알림 ───────────────────────────────────────
+    match /trendAlerts/{alertId} {
+      allow read: if resource.data.isActive == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ── 사용자 프로필 및 서브컬렉션 ───────────────────────
+    match /users/{uid} {
+      // 공개 프로필 읽기
+      allow read: if true;
+      allow write: if isOwner(uid) || isAdmin();
+
+      // 발견 기록
+      match /discoveries/{discoveryId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false; // server-side only
+      }
+
+      // 위시리스트
+      match /wishlist/{itemId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid);
+        allow update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      // 배지
+      match /badges/{badgeId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false; // server-side only
+      }
+
+      // 챌린지 진행도
+      match /challenges/{challengeId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) || isAdmin();
+      }
+
+      // 팔로우/팔로워
+      match /following/{targetUid} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false; // server-side only
+      }
+      match /followers/{followerUid} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow write: if false; // server-side only
+      }
+
+      // 알림
+      match /notifications/{notifId} {
+        allow read: if isOwner(uid);
+        allow update: if isOwner(uid) && request.resource.data.keys().hasOnly(["isRead"]);
+        allow write: if false; // server-side only for create/delete
+      }
+
+      // 웹 푸시 구독 (서버 사이드 관리)
+      match /pushSubscriptions/{subId} {
+        allow read, write: if false; // server-side only
+      }
+
+      // 차단 목록 (서버 사이드 관리)
+      match /blockedUsers/{blockedUid} {
+        allow read: if isOwner(uid);
+        allow write: if false; // server-side only
+      }
+    }
+
+    // ── 신고 ──────────────────────────────────────────────
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+  }
+}

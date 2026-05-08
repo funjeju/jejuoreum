@@ -7,12 +7,12 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft, Share2, CheckCircle2, Heart, MapPin, Clock, Mountain,
-  Pencil, X, Check, Camera, MessageSquare, Navigation, ChevronRight,
+  Pencil, X, Check, Camera, MessageSquare, Navigation, ChevronRight, Flag,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getDiscovery, addToWishlist, updateDiscoveryNote, getUserProfile } from "@/lib/firestore/users";
 import { getOreumCards } from "@/lib/firestore/oreums";
-import { getOreumComments, addComment } from "@/lib/firestore/comments";
+import { getOreumComments, addComment, toggleCommentLike } from "@/lib/firestore/comments";
 import { getOreumPhotos, getMyOreumPhotos, uploadAndSavePhoto } from "@/lib/firestore/photos";
 import { getMerchantsForOreum } from "@/lib/firestore/merchants";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,8 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
   const [totalVisitors, setTotalVisitors] = useState<number | null>(null);
   const [weeklyVisitors, setWeeklyVisitors] = useState<number | null>(null);
   const [companionshipMessage, setCompanionshipMessage] = useState<string | null>(null);
+  const [trendAlerts, setTrendAlerts] = useState<Array<{ id: string; alertType: string; message: string }>>([]);
+  const [recentVisitors, setRecentVisitors] = useState<Array<{ uid: string; userNickname: string; userAvatarUrl: string | null; occurredAt: string }>>([]);
   const [activeNav, setActiveNav]         = useState<NavSection>("info");
 
   const sectionRefs: Record<NavSection, React.RefObject<HTMLDivElement | null>> = {
@@ -89,12 +91,20 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
   }, [oreum.slug]);
 
   useEffect(() => {
+    fetch(`/api/oreums/${oreum.slug}/visitors`)
+      .then((r) => r.json())
+      .then((d) => setRecentVisitors(d.visitors ?? []))
+      .catch(() => {});
+  }, [oreum.slug]);
+
+  useEffect(() => {
     fetch(`/api/oreums/${oreum.slug}/stats`)
       .then((r) => r.json())
       .then((data) => {
         setTotalVisitors(data.totalVisitors ?? null);
         setWeeklyVisitors(data.weeklyVisitors ?? null);
         setCompanionshipMessage(data.companionshipMessage ?? null);
+        setTrendAlerts(data.trendAlerts ?? []);
       })
       .catch(() => {});
   }, [oreum.slug]);
@@ -284,6 +294,18 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
         <section ref={sectionRefs.info}>
           <SectionHeader label="기본 정보" />
 
+          {/* 트렌드 알림 */}
+          {trendAlerts.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {trendAlerts.map((alert) => (
+                <div key={alert.id} className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <span className="text-sm shrink-0">⚠️</span>
+                  <p className="text-xs text-amber-800 font-medium">{alert.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* 협력감 메시지 */}
           {companionshipMessage && (
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10 mb-4">
@@ -315,7 +337,7 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
             <p className="text-sm leading-relaxed text-foreground mt-4">{oreum.descriptionKo}</p>
           )}
 
-          {oreum.emotionalKeywords.length > 0 && (
+          {(oreum.emotionalKeywords?.length ?? 0) > 0 && (
             <div className="mt-4">
               <p className="text-xs font-semibold text-muted-foreground mb-2">분위기</p>
               <div className="flex flex-wrap gap-1.5">
@@ -357,9 +379,9 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
         <section ref={sectionRefs.trail}>
           <SectionHeader label="탐방 정보" />
 
-          {(oreum.recommendedSeasons.length > 0 || oreum.recommendedTimes.length > 0) ? (
+          {((oreum.recommendedSeasons?.length ?? 0) > 0 || (oreum.recommendedTimes?.length ?? 0) > 0) ? (
             <div className="space-y-4">
-              {oreum.recommendedSeasons.length > 0 && (
+              {(oreum.recommendedSeasons?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">추천 시즌</p>
                   <div className="flex flex-wrap gap-2">
@@ -371,7 +393,7 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
                   </div>
                 </div>
               )}
-              {oreum.recommendedTimes.length > 0 && (
+              {(oreum.recommendedTimes?.length ?? 0) > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground mb-2">추천 시간대</p>
                   <div className="flex flex-wrap gap-2">
@@ -389,14 +411,14 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
           )}
 
           {/* 가는 길 */}
-          {(oreum.location.address || oreum.location.dongAddress) && (
+          {(oreum.location?.address || oreum.location?.dongAddress) && (
             <div className="mt-5">
               <p className="text-xs font-semibold text-muted-foreground mb-2">가는 길</p>
               <div className="p-3 rounded-xl bg-muted border border-border">
-                <p className="text-sm">{oreum.location.address ?? oreum.location.dongAddress}</p>
+                <p className="text-sm">{oreum.location?.address ?? oreum.location?.dongAddress}</p>
               </div>
               <a
-                href={`https://map.kakao.com/link/to/${encodeURIComponent(oreum.nameKo)},${oreum.location.lat},${oreum.location.lng}`}
+                href={`https://map.kakao.com/link/to/${encodeURIComponent(oreum.nameKo)},${oreum.location?.lat ?? 0},${oreum.location?.lng ?? 0}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 flex items-center gap-2 text-xs text-primary font-semibold"
@@ -425,7 +447,31 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
           <MySection discovery={discovery} userId={user?.uid ?? null} oreumSlug={oreum.slug} />
         </section>
 
-        {/* 섹션 6: 주변 상권 */}
+        {/* 섹션 6: 최근 방문자 */}
+        {recentVisitors.length > 0 && (
+          <section>
+            <SectionHeader label="최근 방문자" />
+            <div className="flex flex-wrap gap-2">
+              {recentVisitors.map((v, i) => (
+                <Link key={`${v.uid}-${i}`} href={`/${locale}/profile/${v.uid}`}
+                  className="flex flex-col items-center gap-1 group">
+                  <div className="w-11 h-11 rounded-full bg-muted overflow-hidden ring-2 ring-background group-hover:ring-primary/30 transition-all">
+                    {v.userAvatarUrl ? (
+                      <Image src={v.userAvatarUrl} alt={v.userNickname} width={44} height={44} className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                        <span className="text-xs font-bold text-primary">{v.userNickname[0]}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[9px] text-muted-foreground truncate max-w-[44px] text-center">{v.userNickname}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 섹션 7: 주변 상권 */}
         {merchants.length > 0 && (
           <section>
             <SectionHeader label="주변 함께 가볼 곳" />
@@ -433,12 +479,12 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
               {merchants.map((m) => (
                 <Link key={m.id} href={`/${locale}/merchant/${m.id}`} className="shrink-0">
                   <div className="w-36 rounded-xl overflow-hidden border border-border bg-muted hover:scale-[1.02] transition-transform duration-150">
-                    <div className="relative h-24 bg-gradient-to-br from-primary/10 to-primary/5">
+                    <div className="relative h-24 bg-gradient-to-br from-stone-600 to-stone-800">
                       {m.coverImageUrl ? (
                         <Image src={m.coverImageUrl} alt={m.name} fill className="object-cover" sizes="144px" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-2xl text-primary/20">
+                          <span className="text-2xl opacity-60">
                             {m.merchantType === "cafe" ? "☕" : m.merchantType === "restaurant" ? "🍽️" : "🏪"}
                           </span>
                         </div>
@@ -474,7 +520,7 @@ export default function OreumCardClient({ oreum, seoSections = [] }: { oreum: Or
                     {rel.thumbnailUrl ? (
                       <Image src={rel.thumbnailUrl} alt={rel.nameKo} fill className="object-cover" sizes="(max-width: 512px) 50vw, 256px" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
                         <Mountain size={20} className="text-primary/20" />
                       </div>
                     )}
@@ -679,8 +725,21 @@ function TipsSection({
   const [profile, setProfile]         = useState<UserProfile | null>(null);
   const [prompt]                      = useState(() => COMMENT_PROMPTS[Math.floor(Math.random() * COMMENT_PROMPTS.length)]);
 
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
+
   useEffect(() => { getOreumComments(oreum.slug).then((c) => { setComments(c); setLoading(false); }); }, [oreum.slug]);
   useEffect(() => { if (user) getUserProfile(user.uid).then(setProfile); }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    import("@/lib/firebase/client").then(({ auth: firebaseAuth }) => {
+      firebaseAuth.currentUser?.getIdToken().then((token) => {
+        fetch("/api/me/blocks", { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => r.json())
+          .then((data) => setBlockedUsers(new Set(data.blocked ?? [])))
+          .catch(() => {});
+      });
+    });
+  }, [user]);
 
   const handleSubmit = async () => {
     if (!user || content.trim().length < 5 || submitting) return;
@@ -692,6 +751,7 @@ function TipsSection({
         userAvatarUrl: isAnonymous ? null : (profile?.avatarUrl ?? null),
         isAnonymous, content: content.trim(), rating,
         commentType: null, isPublic: true, isPromotedToTip: false,
+        likeCount: 0, likedBy: [],
         createdAt: new Date().toISOString(),
       };
       const id = await addComment(data);
@@ -740,13 +800,55 @@ function TipsSection({
           </p>
         </div>
       ) : (
-        <div className="space-y-3">{comments.map((c) => <CommentItem key={c.id} comment={c} />)}</div>
+        <div className="space-y-3">
+          {comments
+            .filter((c) => !blockedUsers.has(c.userId))
+            .map((c) => (
+              <CommentItem
+                key={c.id}
+                comment={c}
+                userId={user?.uid ?? null}
+                onLikeToggle={(id, liked, delta) =>
+                  setComments((prev) =>
+                    prev.map((x) =>
+                      x.id === id
+                        ? { ...x, likedBy: liked ? [...x.likedBy, user!.uid] : x.likedBy.filter((u) => u !== user!.uid), likeCount: x.likeCount + delta }
+                        : x
+                    )
+                  )
+                }
+                onBlock={(uid) => {
+                  setBlockedUsers((prev) => new Set([...prev, uid]));
+                }}
+              />
+            ))
+          }
+        </div>
       )}
     </div>
   );
 }
 
-function CommentItem({ comment }: { comment: Comment }) {
+function CommentItem({ comment, userId, onLikeToggle, onBlock }: {
+  comment: Comment;
+  userId: string | null;
+  onLikeToggle: (id: string, liked: boolean, delta: number) => void;
+  onBlock: (uid: string) => void;
+}) {
+  const [liking, setLiking] = useState(false);
+  const isLiked = userId ? comment.likedBy.includes(userId) : false;
+
+  const handleLike = async () => {
+    if (!userId || liking) return;
+    setLiking(true);
+    try {
+      await toggleCommentLike(comment.id, userId, !isLiked);
+      onLikeToggle(comment.id, !isLiked, isLiked ? -1 : 1);
+    } finally {
+      setLiking(false);
+    }
+  };
+
   return (
     <div className="border rounded-2xl p-4">
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -771,7 +873,102 @@ function CommentItem({ comment }: { comment: Comment }) {
         </div>
       )}
       <p className="text-sm leading-relaxed">{comment.content}</p>
+      <div className="flex items-center justify-between mt-2">
+        <button
+          onClick={handleLike}
+          disabled={!userId || liking}
+          className={cn(
+            "flex items-center gap-1 text-[11px] font-medium transition-colors",
+            isLiked ? "text-rose-500" : "text-muted-foreground hover:text-rose-400",
+            !userId && "opacity-40 cursor-default",
+          )}
+        >
+          <Heart size={13} className={cn(isLiked && "fill-rose-500")} strokeWidth={isLiked ? 0 : 1.8} />
+          {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
+        </button>
+        {userId && userId !== comment.userId && (
+          <div className="flex items-center gap-2">
+            <ReportButton targetType="comment" targetId={comment.id} userId={userId} />
+            <BlockButton targetUid={comment.userId} userId={userId} onBlock={onBlock} />
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function ReportButton({ targetType, targetId, userId }: { targetType: string; targetId: string; userId: string }) {
+  const [reported, setReported] = useState(false);
+  const [reporting, setReporting] = useState(false);
+
+  const handleReport = async () => {
+    if (reported || reporting) return;
+    if (!confirm("이 후기를 신고하시겠어요?")) return;
+    setReporting(true);
+    try {
+      const { auth: firebaseAuth } = await import("@/lib/firebase/client");
+      const token = await firebaseAuth.currentUser?.getIdToken();
+      if (!token) return;
+      const res = await fetch("/api/me/reports", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ targetType, targetId, reason: "inappropriate", detail: null }),
+      });
+      if (res.ok || res.status === 409) setReported(true);
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleReport}
+      disabled={reported || reporting}
+      className={cn(
+        "flex items-center gap-0.5 text-[10px] transition-colors",
+        reported ? "text-muted-foreground/30" : "text-muted-foreground/40 hover:text-rose-400"
+      )}
+    >
+      <Flag size={10} />
+      {reported ? "신고됨" : "신고"}
+    </button>
+  );
+}
+
+function BlockButton({ targetUid, userId, onBlock }: { targetUid: string; userId: string; onBlock: (uid: string) => void }) {
+  const [blocked, setBlocked] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleBlock = async () => {
+    if (blocked || loading) return;
+    if (!confirm("이 사용자를 차단하면 해당 사용자의 후기가 숨겨져요. 차단하시겠어요?")) return;
+    setLoading(true);
+    try {
+      const { auth: firebaseAuth } = await import("@/lib/firebase/client");
+      const token = await firebaseAuth.currentUser?.getIdToken();
+      if (!token) return;
+      const res = await fetch("/api/me/blocks", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUid }),
+      });
+      if (res.ok) { setBlocked(true); onBlock(targetUid); }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleBlock}
+      disabled={blocked || loading}
+      className={cn(
+        "text-[10px] transition-colors",
+        blocked ? "text-muted-foreground/30" : "text-muted-foreground/40 hover:text-destructive"
+      )}
+    >
+      {blocked ? "차단됨" : "차단"}
+    </button>
   );
 }
 

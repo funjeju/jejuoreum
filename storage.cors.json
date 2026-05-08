@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://jejuoreum.com", "https://www.jejuoreum.com"],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    "responseHeader": ["Content-Type", "Content-Disposition", "Cache-Control"],
+    "maxAgeSeconds": 3600
+  }
+]

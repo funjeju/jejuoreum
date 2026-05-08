@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import Image from "next/image";
-import { ArrowLeft, Mountain, Check, Clock, MapPin, ChevronRight, RotateCcw, ExternalLink } from "lucide-react";
+import { ArrowLeft, Mountain, Check, Clock, MapPin, ChevronRight, RotateCcw, ExternalLink, Share2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getWishlist } from "@/lib/firestore/users";
 import { getOreumBySlug } from "@/lib/firestore/oreums";
@@ -245,6 +245,26 @@ export default function CoursePlannerPage() {
               </Button>
             </a>
           )}
+
+          {/* SNS 공유 */}
+          <Button
+            variant="outline"
+            className="w-full h-12 gap-2"
+            onClick={async () => {
+              const names = course.map((c) => c.item.oreumNameKo).join(",");
+              const totalKm = course.reduce((s, c) => s + c.travelKmFromPrev, 0).toFixed(1);
+              const ogUrl = `/api/og/course-card?oreums=${encodeURIComponent(names)}&km=${totalKm}`;
+              const shareText = `오늘의 제주 오름 코스 🏔\n${course.map((c, i) => `${i + 1}. ${c.item.oreumNameKo}`).join("\n")}\n\njejuoreum.com`;
+              if (navigator.share) {
+                await navigator.share({ title: "제주 오름 코스", text: shareText, url: window.location.origin + ogUrl }).catch(() => {});
+              } else {
+                await navigator.clipboard.writeText(shareText).catch(() => {});
+              }
+            }}
+          >
+            <Share2 size={15} />
+            코스 공유하기
+          </Button>
 
           <Button
             variant="outline"

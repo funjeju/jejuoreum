@@ -147,8 +147,8 @@ export default async function RegionPage({ params }: Props) {
                           sizes="(max-width: 512px) 50vw, 256px"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                          <span className="text-3xl font-bold text-primary/20">{oreum.nameKo[0]}</span>
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                          <span className="text-3xl font-bold text-white/40">{oreum.nameKo[0]}</span>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

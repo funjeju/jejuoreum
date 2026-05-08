@@ -156,6 +156,7 @@ export default function QRPage() {
               oreumId: oreum.id,
               oreumSlug: oreum.slug,
               oreumNameKo: oreum.nameKo,
+              oreumRegion: oreum.region ?? null,
               visibility: "public",
               delayMin: visibility === "delay_10min" ? 10 : 0,
             });
@@ -192,8 +193,8 @@ export default function QRPage() {
             {selected.thumbnailUrl ? (
               <Image src={selected.thumbnailUrl} alt={selected.nameKo} fill className="object-cover" sizes="160px" />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center">
-                <Mountain size={48} className="text-primary/40" />
+              <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                <Mountain size={48} className="text-white/40" />
               </div>
             )}
           </div>
@@ -306,8 +307,8 @@ export default function QRPage() {
             {oreum.thumbnailUrl ? (
               <Image src={oreum.thumbnailUrl} alt={oreum.nameKo} fill className="object-cover" sizes="100vw" />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center">
-                <Mountain size={64} className="text-primary/30" />
+              <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                <Mountain size={64} className="text-white/40" />
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
@@ -393,8 +394,8 @@ export default function QRPage() {
                 {oreum.thumbnailUrl ? (
                   <Image src={oreum.thumbnailUrl} alt={oreum.nameKo} fill className="object-cover" sizes="64px" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Mountain size={20} className="text-primary/30" />
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                    <Mountain size={20} className="text-white/40" />
                   </div>
                 )}
               </div>

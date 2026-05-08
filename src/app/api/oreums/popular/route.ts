@@ -6,16 +6,18 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // collectionGroup query across all users' discoveries
+  // collectionGroup: 최근 500개 발견 기록 가져온 뒤 메모리 필터 (인덱스 불필요)
   const snap = await adminDb
     .collectionGroup("discoveries")
-    .where("discoveredAt", ">=", sevenDaysAgo)
+    .orderBy("discoveredAt", "desc")
+    .limit(500)
     .get();
 
-  // Count by oreumSlug
+  // Count by oreumSlug (메모리에서 7일 이내만 필터)
   const counts = new Map<string, { count: number; nameKo: string; thumbnailUrl: string | null; slug: string }>();
   for (const d of snap.docs) {
     const data = d.data();
+    if ((data.discoveredAt as string) < sevenDaysAgo) continue;
     const slug: string = data.oreumSlug;
     if (!slug) continue;
     const existing = counts.get(slug);

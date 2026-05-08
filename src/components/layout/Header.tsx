@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, Bell } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, Bell, Search } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -12,12 +13,24 @@ import { auth } from "@/lib/firebase/client";
 
 interface HeaderProps {
   title?: string;
-  notificationCount?: number;
 }
 
-export function Header({ title = "제주 오름 패스포트", notificationCount = 0 }: HeaderProps) {
+export function Header({ title = "제주 오름 패스포트" }: HeaderProps) {
   const locale = useLocale();
   const { user } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnread(0); return; }
+    user.getIdToken().then((token) =>
+      fetch("/api/me/notifications?unreadOnly=true&limit=1", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((d) => setUnread(d.unreadCount ?? 0))
+        .catch(() => {})
+    );
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -40,12 +53,16 @@ export function Header({ title = "제주 오름 패스포트", notificationCount
           </SheetHeader>
           <nav className="p-4 space-y-1">
             {[
-              { href: `/${locale}`,            label: "홈" },
-              { href: `/${locale}/collection`, label: "오름 도감" },
-              { href: `/${locale}/wishlist`,   label: "위시리스트" },
-              { href: `/${locale}/challenges`, label: "챌린지" },
-              { href: `/${locale}/quiz`,       label: "오름 MBTI" },
-              { href: `/${locale}/profile`,    label: "프로필" },
+              { href: `/${locale}`,               label: "홈" },
+              { href: `/${locale}/collection`,    label: "오름 도감" },
+              { href: `/${locale}/wishlist`,      label: "위시리스트" },
+              { href: `/${locale}/challenges`,    label: "챌린지" },
+              { href: `/${locale}/goods`,         label: "굿즈 스토어" },
+              { href: `/${locale}/quiz`,          label: "오름 MBTI" },
+              { href: `/${locale}/feed`,          label: "탐험 피드" },
+              { href: `/${locale}/search`,        label: "검색" },
+              { href: `/${locale}/profile`,       label: "프로필" },
+              { href: `/${locale}/notifications`, label: "알림" },
             ].map(({ href, label }) => (
               <Link
                 key={href}
@@ -77,12 +94,24 @@ export function Header({ title = "제주 오름 패스포트", notificationCount
 
       <h1 className="text-base font-semibold">{title}</h1>
 
-      <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white relative">
-        <Bell className="h-5 w-5" />
-        {notificationCount > 0 && (
-          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500" />
-        )}
-      </Button>
+      <div className="flex items-center gap-1">
+        <Link href={`/${locale}/search`}>
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white">
+            <Search className="h-5 w-5" />
+          </Button>
+        </Link>
+
+        <Link href={`/${locale}/notifications`}>
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white relative">
+            <Bell className="h-5 w-5" />
+            {unread > 0 && (
+              <span className="absolute right-2 top-2 min-w-[16px] h-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center px-0.5">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </Button>
+        </Link>
+      </div>
     </header>
   );
 }

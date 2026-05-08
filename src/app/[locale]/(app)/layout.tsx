@@ -1,5 +1,6 @@
 import BottomNav from "@/components/layout/BottomNav";
 import { PendingMbtiSaver } from "@/components/PendingMbtiSaver";
+import { PushOptIn } from "@/components/notifications/PushOptIn";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PendingMbtiSaver />
       {children}
       <BottomNav />
+      <PushOptIn />
     </>
   );
 }
