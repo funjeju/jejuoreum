@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert } from "lucide-react";
+import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/admin/photos/queue",        icon: Camera,          label: "사진 큐" },
   { href: "/admin/comments/queue",      icon: MessageSquare,   label: "코멘트 큐" },
   { href: "/admin/seo-contents",        icon: FileText,        label: "SEO 콘텐츠" },
+  { href: "/admin/merchants",            icon: Store,           label: "제휴 상권" },
   { href: "/admin/challenges",          icon: CheckCircle2,    label: "챌린지" },
   { href: "/admin/users",               icon: Users,           label: "사용자" },
 ];
