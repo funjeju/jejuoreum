@@ -8,6 +8,7 @@ const LOCALES = ["ko", "en", "ja", "zh"] as const;
 const REGIONS: Region[] = ["east", "west", "south", "north", "central"];
 const LEVELS = ["beginner", "explorer"] as const;
 const SEASONS = ["spring", "summer", "autumn", "winter"] as const;
+const FEATURES = ["sunrise", "sunset"] as const;
 
 function localePrefix(locale: (typeof LOCALES)[number]) {
   return `/${locale}`;
@@ -100,6 +101,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   );
 
+  // 특집 카테고리 페이지
+  const featurePages: MetadataRoute.Sitemap = FEATURES.flatMap((feature) =>
+    LOCALES.map((locale) => {
+      const p = localePrefix(locale);
+      return {
+        url: `${BASE_URL}${p}/oreum/feature/${feature}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      };
+    })
+  );
+
   // 오름 개별 페이지
   let oreumPages: MetadataRoute.Sitemap = [];
   try {
@@ -126,6 +140,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...regionPages,
     ...levelPages,
     ...seasonPages,
+    ...featurePages,
     ...oreumPages,
   ];
 }

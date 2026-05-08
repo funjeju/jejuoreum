@@ -19,6 +19,11 @@ const SEASON_META = [
   { season: "winter",  label: "겨울",  emoji: "❄️", desc: "설경과 일출 명소" },
 ] as const;
 
+const FEATURE_META = [
+  { feature: "sunrise", label: "일출 명소", emoji: "🌅", desc: "새벽빛과 함께하는 제주 일출 오름" },
+  { feature: "sunset",  label: "일몰 명소", emoji: "🌇", desc: "노을빛으로 물드는 제주 일몰 오름" },
+] as const;
+
 const BASE_URL = "https://jejuoreum.com";
 
 const REGION_META: Record<Region, { label: string; desc: string }> = {
@@ -181,6 +186,24 @@ export default async function OreumHubPage({ params }: Props) {
             <div className="grid grid-cols-2 gap-3">
               {SEASON_META.map(({ season, label, emoji, desc }) => (
                 <Link key={season} href={`/${locale}/oreum/season/${season}`}>
+                  <div className="bg-card border border-border rounded-2xl p-4 hover:border-primary/40 transition-colors h-full">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base">{emoji}</span>
+                      <span className="font-bold text-sm text-foreground">{label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 특집 카테고리 */}
+          <div className="pt-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">특집</p>
+            <div className="grid grid-cols-2 gap-3">
+              {FEATURE_META.map(({ feature, label, emoji, desc }) => (
+                <Link key={feature} href={`/${locale}/oreum/feature/${feature}`}>
                   <div className="bg-card border border-border rounded-2xl p-4 hover:border-primary/40 transition-colors h-full">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-base">{emoji}</span>
