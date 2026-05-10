@@ -66,17 +66,17 @@ export default function ArPage() {
   const [heading, setHeading]       = useState(0);
   const [compassAvail, setCompassAvail] = useState(true);
 
-  // 나침반 수신 (low-pass filter + iOS webkitCompassHeading 지원)
+  // 나침반 수신 (low-pass filter + iOS webkitCompassHeading + 이벤트 중복 방지)
   useEffect(() => {
     let smoothed: number | null = null;
-    const ALPHA = 0.15;
+    const ALPHA = 0.06; // 작을수록 부드러움 (0.15 → 0.06)
 
     const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
       let raw: number | null = null;
       if (typeof e.webkitCompassHeading === "number") {
-        raw = e.webkitCompassHeading;           // iOS: 진북 기준, 직접 제공
+        raw = e.webkitCompassHeading;
       } else if (e.alpha !== null) {
-        raw = (360 - e.alpha) % 360;            // Android
+        raw = (360 - e.alpha) % 360;
       }
       if (raw === null) return;
 
@@ -91,12 +91,14 @@ export default function ArPage() {
       setHeading(smoothed);
     };
 
-    window.addEventListener("deviceorientationabsolute" as "deviceorientation", handler);
-    window.addEventListener("deviceorientation", handler);
-    return () => {
-      window.removeEventListener("deviceorientationabsolute" as "deviceorientation", handler);
-      window.removeEventListener("deviceorientation", handler);
-    };
+    // Android: deviceorientationabsolute가 있으면 그것만 등록 (중복 방지)
+    if ("ondeviceorientationabsolute" in window) {
+      window.addEventListener("deviceorientationabsolute" as "deviceorientation", handler);
+      return () => window.removeEventListener("deviceorientationabsolute" as "deviceorientation", handler);
+    } else {
+      window.addEventListener("deviceorientation", handler);
+      return () => window.removeEventListener("deviceorientation", handler);
+    }
   }, []);
 
   const startAr = useCallback(async () => {
