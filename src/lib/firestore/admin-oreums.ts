@@ -186,6 +186,7 @@ export async function adminBulkUpsertOreums(rows: CsvOreumRow[]): Promise<{ inse
         recommendedTimes: [],
         emotionalKeywords: row.emotionalKeywords ? row.emotionalKeywords.split(",").map((s) => s.trim()) : [],
         mbti: row.mbti ?? null,
+        illustrationUrl: null,
         photoUrls: [],
         thumbnailUrl: null,
         hasCrater: null,

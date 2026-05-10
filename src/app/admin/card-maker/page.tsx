@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { Upload, Sparkles, Download, Save, ChevronRight, Loader2, X, RefreshCw } from "lucide-react";
+import { Upload, Sparkles, Download, Save, ChevronRight, Loader2, X, RefreshCw, ImageIcon, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Oreum } from "@/types";
 
@@ -113,8 +113,10 @@ export default function CardMakerPage() {
   const [originalImg, setOriginalImg] = useState<string | null>(null);   // 업로드된 원본
   const [styledImg, setStyledImg]     = useState<string | null>(null);   // AI 변환 결과
   const [styleKey, setStyleKey]       = useState<StyleKey>("ghibli");
-  const [generating, setGenerating]   = useState(false);
-  const [genError, setGenError]       = useState("");
+  const [generating, setGenerating]       = useState(false);
+  const [genError, setGenError]           = useState("");
+  const [savingIllust, setSavingIllust]   = useState(false);
+  const [illustSaved, setIllustSaved]     = useState(false);
 
   const [cardText, setCardText] = useState<CardText>({
     name: "", oneLiner: "", region: "", elevation: "", hashtags: "",
@@ -394,9 +396,51 @@ export default function CardMakerPage() {
                 <p className="text-xs font-semibold text-muted-foreground">변환 결과</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={styledImg} alt="styled" className="w-full aspect-square object-cover rounded-xl" />
+
+                {/* 일러스트 저장 버튼 — MBTI 매칭에 사용될 이미지 */}
+                <button
+                  onClick={async () => {
+                    if (!selected || !styledImg) return;
+                    setSavingIllust(true);
+                    setIllustSaved(false);
+                    try {
+                      const token = await user?.getIdToken();
+                      const res = await fetch("/api/admin/card/save-illustration", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Authorization": `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ oreumId: selected.id, imageBase64: styledImg }),
+                      });
+                      if (!res.ok) throw new Error("저장 실패");
+                      setIllustSaved(true);
+                    } catch {
+                      alert("일러스트 저장 실패. 다시 시도해주세요.");
+                    } finally {
+                      setSavingIllust(false);
+                    }
+                  }}
+                  disabled={savingIllust || illustSaved}
+                  className={cn(
+                    "w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors",
+                    illustSaved
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-secondary text-foreground border border-border hover:bg-muted",
+                  )}
+                >
+                  {savingIllust ? (
+                    <><Loader2 size={12} className="animate-spin" /> 저장 중...</>
+                  ) : illustSaved ? (
+                    <><Check size={12} /> 일러스트 저장 완료</>
+                  ) : (
+                    <><ImageIcon size={12} /> 일러스트로 저장 (MBTI 매칭용)</>
+                  )}
+                </button>
+
                 <div className="flex gap-2">
                   <button
-                    onClick={handleGenerate}
+                    onClick={() => { setIllustSaved(false); handleGenerate(); }}
                     className="flex-1 py-2 rounded-lg border border-border text-xs flex items-center justify-center gap-1"
                   >
                     <RefreshCw size={12} /> 재생성
@@ -460,8 +504,18 @@ export default function CardMakerPage() {
                 onClick={async () => {
                   const canvas = canvasRef.current;
                   if (!canvas || !selected) return;
-                  // Firebase Storage에 저장 후 oreum thumbnail 업데이트는 별도 구현
-                  alert("썸네일 저장 기능은 Firebase Storage 연동 후 활성화됩니다.");
+                  const imageBase64 = canvas.toDataURL("image/png");
+                  const token = await user?.getIdToken();
+                  const res = await fetch(`/api/admin/oreums/${selected.id}/thumbnail`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ imageBase64 }),
+                  });
+                  if (res.ok) alert(`${selected.nameKo} 썸네일 저장 완료!`);
+                  else alert("저장 실패. 다시 시도해주세요.");
                 }}
                 className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold flex items-center justify-center gap-2"
               >

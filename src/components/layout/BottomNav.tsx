@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Home, BookOpen, MapPin, ScanEye, User } from "lucide-react";
+import { Home, BookOpen, MapPin, Users, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LEFT = [
@@ -13,8 +13,8 @@ const LEFT = [
 ] as const;
 
 const RIGHT = [
-  { key: "ar", href: "/ar", labelKey: "ar", Icon: ScanEye },
-  { key: "my", href: "/profile", labelKey: "my", Icon: User },
+  { key: "feed", href: "/feed", labelKey: "feed", Icon: Users },
+  { key: "my",   href: "/profile", labelKey: "my",  Icon: User },
 ] as const;
 
 export default function BottomNav() {

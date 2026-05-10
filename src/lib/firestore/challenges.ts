@@ -25,11 +25,18 @@ export async function getUserChallenges(uid: string): Promise<UserChallenge[]> {
 
 export async function joinChallenge(uid: string, challenge: Challenge): Promise<void> {
   const ref = doc(collection(db, `users/${uid}/challenges`));
+
+  // specific_set: goal = 선택된 오름 수
+  const goal = challenge.conditionType === "specific_set"
+    ? ((challenge.conditionValue as { oreumSlugs?: string[] }).oreumSlugs?.length ?? 1)
+    : ((challenge.conditionValue as { value?: number }).value ?? 1);
+
   await setDoc(ref, {
     challengeId:      challenge.id,
     challengeNameKo:  challenge.nameKo,
+    conditionType:    challenge.conditionType,
     progress:         0,
-    goal:             (challenge.conditionValue as { value?: number }).value ?? 1,
+    goal,
     isCompleted:      false,
     completedAt:      null,
     startedAt:        new Date().toISOString(),

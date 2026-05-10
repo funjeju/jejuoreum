@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import type { UserProfile } from "@/types";
 
 export default function ProfileEditClient() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const locale   = useLocale();
   const router   = useRouter();
 
@@ -26,11 +26,12 @@ export default function ProfileEditClient() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (authLoading) return; // Firebase 인증 확인 중엔 대기
     if (!user) { router.replace(`/${locale}/auth/login`); return; }
     getUserProfile(user.uid)
       .then((p) => { if (p) setProfile(p); })
       .finally(() => setLoading(false));
-  }, [user, locale, router]);
+  }, [user, authLoading, locale, router]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,7 +63,7 @@ export default function ProfileEditClient() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />

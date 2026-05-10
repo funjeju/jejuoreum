@@ -44,14 +44,14 @@ export function Header({ title = "제주 오름 패스포트" }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0">
-          <SheetHeader className="bg-header px-6 py-8 text-white">
+        <SheetContent side="left" className="w-72 p-0 flex flex-col">
+          <SheetHeader className="bg-header px-6 py-8 text-white shrink-0">
             <SheetTitle className="text-white text-lg font-bold">제주 오름 패스포트</SheetTitle>
             <p className="text-white/70 text-sm mt-1">
               {user ? `${user.displayName ?? "탐험가"}님` : "로그인하여 시작하세요"}
             </p>
           </SheetHeader>
-          <nav className="p-4 space-y-1">
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             {[
               { href: `/${locale}`,               label: "홈" },
               { href: `/${locale}/collection`,    label: "오름 도감" },
@@ -59,7 +59,7 @@ export function Header({ title = "제주 오름 패스포트" }: HeaderProps) {
               { href: `/${locale}/challenges`,    label: "챌린지" },
               { href: `/${locale}/goods`,         label: "굿즈 스토어" },
               { href: `/${locale}/quiz`,          label: "오름 MBTI" },
-              { href: `/${locale}/feed`,          label: "탐험 피드" },
+              { href: `/${locale}/ar`,            label: "AR 둘러보기" },
               { href: `/${locale}/search`,        label: "검색" },
               { href: `/${locale}/profile`,       label: "프로필" },
               { href: `/${locale}/notifications`, label: "알림" },

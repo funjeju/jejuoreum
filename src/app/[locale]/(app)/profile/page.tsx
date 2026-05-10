@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { User, Award, Mountain, LogOut, ChevronRight, Leaf, Settings, BarChart2 } from "lucide-react";
+import { User, Award, Mountain, LogOut, ChevronRight, Leaf, Settings, BarChart2, Heart } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserProfile, getUserDiscoveries } from "@/lib/firestore/users";
@@ -36,12 +36,23 @@ export default function ProfilePage() {
   const [profile, setProfile]         = useState<UserProfile | null>(null);
   const [discoveries, setDiscoveries]  = useState<UserDiscovery[]>([]);
   const [loading, setLoading]          = useState(true);
+  const [favoriteOreums, setFavoriteOreums] = useState<Array<{
+    id: string; nameKo: string; slug: string;
+    illustrationUrl: string | null; thumbnailUrl: string | null;
+  }>>([]);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     Promise.all([getUserProfile(user.uid), getUserDiscoveries(user.uid)]).then(([p, d]) => {
       setProfile(p); setDiscoveries(d); setLoading(false);
     });
+    // 애정 오름 로드
+    user.getIdToken().then((token) =>
+      fetch("/api/me/favorite-oreums", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d) => setFavoriteOreums(d.oreums ?? []))
+        .catch(() => {})
+    );
     localStorage.removeItem("badge_notification");
   }, [user]);
 
@@ -87,9 +98,31 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background pb-28">
       <Header title={t("title")} />
 
-      {/* 프로필 헤더 */}
-      <div className="bg-header px-5 pt-6 pb-10">
-        <div className="max-w-lg mx-auto flex items-center gap-4">
+      {/* 프로필 헤더 — 애정 오름 일러스트 배경 */}
+      <div className="relative bg-header px-5 pt-6 pb-10 overflow-hidden">
+        {/* 일러스트 배경 (3개 타일) */}
+        {favoriteOreums.length > 0 && (
+          <div className="absolute inset-0 flex pointer-events-none">
+            {favoriteOreums.map((o, i) => {
+              const imgSrc = o.illustrationUrl ?? o.thumbnailUrl;
+              if (!imgSrc) return null;
+              return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={o.id}
+                  src={imgSrc}
+                  alt=""
+                  className="flex-1 h-full object-cover"
+                  style={{ opacity: i === 0 ? 0.18 : 0.10 }}
+                />
+              );
+            })}
+            {/* 그라데이션 오버레이 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-header/95 via-header/70 to-header/90" />
+            <div className="absolute inset-0 bg-gradient-to-b from-header/20 to-header/80" />
+          </div>
+        )}
+        <div className="relative max-w-lg mx-auto flex items-center gap-4">
           {loading ? (
             <Skeleton className="w-16 h-16 rounded-full" />
           ) : (
@@ -126,6 +159,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-lg mx-auto px-4 -mt-4 space-y-3">
+
         {/* 통계 카드 */}
         {!loading && (
           <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
@@ -222,10 +256,77 @@ export default function ProfilePage() {
           )
         )}
 
+        {/* 애정 오름 카드 */}
+        {!loading && favoriteOreums.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Heart size={11} className="text-rose-500 fill-rose-500" /> 나의 애정 오름
+              </p>
+              <Link
+                href={`/${locale}/quiz`}
+                className="text-[10px] text-primary hover:underline"
+              >
+                변경하기
+              </Link>
+            </div>
+            <div className="flex gap-2">
+              {favoriteOreums.map((o) => {
+                const imgSrc = o.illustrationUrl ?? o.thumbnailUrl;
+                return (
+                  <Link
+                    key={o.id}
+                    href={`/${locale}/oreum/${o.slug}`}
+                    className="flex-1 flex flex-col items-center gap-1.5 group"
+                  >
+                    <div className="w-full aspect-square rounded-xl overflow-hidden relative">
+                      {imgSrc ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imgSrc}
+                          alt={o.nameKo}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center">
+                          <Mountain size={20} className="text-white/60" />
+                        </div>
+                      )}
+                      {o.illustrationUrl && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-violet-600 flex items-center justify-center">
+                          <span className="text-[7px] text-white font-bold">AI</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-medium text-center truncate w-full">{o.nameKo}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 애정 오름 미설정 시 CTA */}
+        {!loading && favoriteOreums.length === 0 && profile?.oreumMbti && (
+          <Link
+            href={`/${locale}/quiz/result/${profile.oreumMbti.toLowerCase()}`}
+            className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-100 hover:opacity-90 transition-opacity"
+          >
+            <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+              <Heart size={18} className="text-rose-500 fill-rose-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold">나의 애정 오름 지정하기</p>
+              <p className="text-xs text-muted-foreground mt-0.5">MBTI 결과에서 최대 3개 선택</p>
+            </div>
+            <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+          </Link>
+        )}
+
         {/* 메뉴 */}
         <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
           {[
-            { icon: Mountain,   label: "내 발견 목록",      href: `/${locale}/collection` },
+            { icon: Mountain,   label: "내 스탬프 북",       href: `/${locale}/stamps` },
             { icon: BarChart2,  label: "탐험 통계",          href: `/${locale}/profile/stats` },
             { icon: Award,      label: "획득한 배지",         href: `/${locale}/profile/badges` },
             { icon: User,       label: "프로필 편집",         href: `/${locale}/profile/edit` },

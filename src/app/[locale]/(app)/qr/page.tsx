@@ -8,10 +8,6 @@ import Image from "next/image";
 import { MapPin, Mountain, ChevronRight, X, CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { saveDiscovery, getUserDiscoveries, getUserProfile, getDiscovery } from "@/lib/firestore/users";
-import { evaluateAndAwardBadges } from "@/lib/firestore/badges";
-import { createDiscoveryFeedEvent } from "@/lib/firestore/feed";
-import { getUserChallenges, updateChallengeProgress } from "@/lib/firestore/challenges";
 import { cn } from "@/lib/utils";
 import type { GpsMatchResult, NearbyOreum, Badge } from "@/types";
 
@@ -46,30 +42,52 @@ export default function QRPage() {
   const [newBadges, setNewBadges]     = useState<Badge[]>([]);
   const [errMsg, setErrMsg]           = useState<string>("");
   const [visibility, setVisibility]   = useState<Visibility>("delay_10min");
-  const [monthCount, setMonthCount]   = useState<number | null>(null);
-  const [isRevisit, setIsRevisit]     = useState(false);
+  const [monthCount, setMonthCount]             = useState<number | null>(null);
+  const [isRevisit, setIsRevisit]               = useState(false);
+  const [companionshipMsg, setCompanionshipMsg] = useState<string | null>(null);
 
   const runGpsFlow = useCallback(async () => {
     setStage("locating");
     setErrMsg("");
 
+    // ① 권한 상태 사전 확인 (Permissions API 지원 시)
+    if (navigator.permissions) {
+      try {
+        const status = await navigator.permissions.query({ name: "geolocation" });
+        if (status.state === "denied") {
+          setStage("permission_denied");
+          return;
+        }
+      } catch { /* 일부 브라우저 미지원 — 무시하고 계속 */ }
+    }
+
+    // ② GPS 취득
     let coords: { latitude: number; longitude: number; accuracy: number };
     try {
       coords = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+          (pos) => resolve({
+            latitude:  pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy:  pos.coords.accuracy,
+          }),
           (err) => reject(err),
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
       });
     } catch (err: unknown) {
-      const geoErr = err as { code?: number };
+      const geoErr = err as { code?: number; message?: string };
       if (geoErr?.code === 1) { setStage("permission_denied"); return; }
-      setErrMsg("위치를 가져오지 못했어요. 다시 시도해주세요.");
+      setErrMsg(
+        geoErr?.code === 3
+          ? "위치 확인 시간이 초과됐어요. 야외로 이동 후 다시 시도해주세요."
+          : "위치를 가져오지 못했어요. GPS가 켜져 있는지 확인해주세요."
+      );
       setStage("error");
       return;
     }
 
+    // ③ 서버에서 오름 매칭
     setStage("matching");
     try {
       const res = await fetch("/api/qr/match", {
@@ -81,9 +99,9 @@ export default function QRPage() {
       const result: GpsMatchResult = await res.json();
       setMatchResult(result);
 
-      if (result.status === "auto")        setStage("auto_match");
-      else if (result.status === "candidates") setStage("candidates");
-      else                                  setStage("no_match");
+      if (result.status === "auto")             setStage("auto_match");
+      else if (result.status === "candidates")  setStage("candidates");
+      else                                      setStage("no_match");
     } catch {
       setErrMsg("서버와 연결할 수 없어요. 잠시 후 다시 시도해주세요.");
       setStage("error");
@@ -101,77 +119,54 @@ export default function QRPage() {
     setStage("verifying");
 
     try {
-      const existing = await getDiscovery(user.uid, oreum.slug).catch(() => null);
-      const wasNew = !existing;
-      setIsRevisit(!wasNew);
-
-      if (wasNew) {
-        const profile = await getUserProfile(user.uid).catch(() => null);
-        await saveDiscovery(user.uid, {
-          oreumId: oreum.id,
-          oreumSlug: oreum.slug,
-          oreumNameKo: oreum.nameKo,
-          oreumRegion: oreum.region,
-          oreumTier: oreum.tier,
-          oreumThumbnailUrl: oreum.thumbnailUrl,
-          discoveredAt: new Date().toISOString(),
-          verificationMethod: "gps",
+      const token = await user.getIdToken();
+      const res = await fetch("/api/me/discoveries", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          oreumId:               oreum.id,
+          oreumSlug:             oreum.slug,
+          oreumNameKo:           oreum.nameKo,
+          oreumRegion:           oreum.region ?? null,
+          oreumTier:             oreum.tier ?? null,
+          oreumThumbnailUrl:     oreum.thumbnailUrl ?? null,
           verificationDistanceM: oreum.distanceM,
-          userNote: null,
-          visibility: visibility === "private" ? "private" : "public",
-        });
+          visibility,
+        }),
+      });
 
-        // Badge evaluation + challenge update (background)
-        getUserDiscoveries(user.uid).then(async (allDiscs) => {
-          const now = new Date();
-          const monthDiscs = allDiscs.filter((d) => {
-            const dt = new Date(d.discoveredAt);
-            return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
-          });
-          setMonthCount(monthDiscs.length);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error ?? `서버 오류 (${res.status})`);
+      }
 
-          const earned = await evaluateAndAwardBadges(user.uid, allDiscs).catch(() => [] as Badge[]);
-          if (earned.length > 0) {
-            setNewBadges(earned);
-            localStorage.setItem("badge_notification", "1");
-          }
+      const data = await res.json() as {
+        alreadyDiscovered: boolean;
+        newBadges: Badge[];
+        monthCount: number;
+        companionshipMessage: string | null;
+      };
 
-          const challenges = await getUserChallenges(user.uid);
-          for (const ch of challenges) {
-            if (ch.isCompleted) continue;
-            if (allDiscs.length > ch.progress) {
-              updateChallengeProgress(user.uid, ch.id, allDiscs.length, ch.goal).catch(() => {});
-            }
-          }
-        }).catch(() => {});
+      setIsRevisit(data.alreadyDiscovered);
+      setMonthCount(data.monthCount);
+      setCompanionshipMsg(data.companionshipMessage ?? null);
 
-        // Feed event
-        if (visibility !== "private") {
-          getUserProfile(user.uid).then((profile) => {
-            if (!profile) return;
-            createDiscoveryFeedEvent({
-              uid: user.uid,
-              userNickname: profile.nickname,
-              userAvatarUrl: profile.avatarUrl,
-              oreumId: oreum.id,
-              oreumSlug: oreum.slug,
-              oreumNameKo: oreum.nameKo,
-              oreumRegion: oreum.region ?? null,
-              visibility: "public",
-              delayMin: visibility === "delay_10min" ? 10 : 0,
-            });
-          }).catch(() => {});
-        }
+      if (!data.alreadyDiscovered && data.newBadges.length > 0) {
+        setNewBadges(data.newBadges);
+        localStorage.setItem("badge_notification", "1");
+      }
 
-        if (typeof window !== "undefined" && "vibrate" in navigator) {
-          navigator.vibrate([40, 30, 80]);
-        }
+      if ("vibrate" in navigator) {
+        navigator.vibrate([40, 30, 80]);
       }
 
       setSelected(oreum);
       setStage("success");
-    } catch {
-      setErrMsg("인증 중 오류가 발생했어요. 다시 시도해주세요.");
+    } catch (e: unknown) {
+      setErrMsg(e instanceof Error ? e.message : "인증 중 오류가 발생했어요. 다시 시도해주세요.");
       setStage("error");
     }
   }, [user, visibility]);
@@ -208,9 +203,12 @@ export default function QRPage() {
             {isRevisit ? "다시 방문! 반갑네요 👋" : "발견 완료! 도감에 기록됐어요 🎉"}
           </p>
           {!isRevisit && monthCount !== null && (
-            <p className="text-muted-foreground text-xs mb-6">이번 달 {monthCount}번째 발견이에요 🌿</p>
+            <p className="text-muted-foreground text-xs">이번 달 {monthCount}번째 발견이에요 🌿</p>
           )}
-          {isRevisit && <div className="mb-6" />}
+          {!isRevisit && companionshipMsg && (
+            <p className="text-muted-foreground text-xs mb-6 mt-1">🥾 {companionshipMsg}</p>
+          )}
+          {(!companionshipMsg || isRevisit) && <div className="mb-6" />}
 
           {newBadges.length > 0 && (
             <div className="bg-amber-50 rounded-2xl p-4 mb-6 w-full max-w-xs text-left border border-amber-200">
@@ -238,20 +236,40 @@ export default function QRPage() {
 
   // ── 권한 거부 ──────────────────────────────────────────────────
   if (stage === "permission_denied") {
+    const isIos = typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent);
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-5">
-          <MapPin size={28} className="text-muted-foreground" />
+        <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-5">
+          <MapPin size={28} className="text-amber-600" />
         </div>
-        <h2 className="text-lg font-bold mb-2">GPS 권한이 필요해요</h2>
-        <p className="text-sm text-muted-foreground mb-8 max-w-xs leading-relaxed">
-          오름 인증을 위해 위치 권한이 필요해요. 브라우저 설정에서 위치 권한을 허용하고 다시 시도해주세요.
-        </p>
-        <div className="flex gap-3">
-          <Button onClick={runGpsFlow} className="bg-primary text-white rounded-xl h-11 px-6">
+        <h2 className="text-lg font-bold mb-2">위치 권한이 필요해요</h2>
+
+        {isIos ? (
+          <div className="text-sm text-muted-foreground mb-6 max-w-xs leading-relaxed text-left bg-muted/60 rounded-2xl p-4 border border-border">
+            <p className="font-semibold text-foreground mb-2">iPhone 설정 방법</p>
+            <ol className="space-y-1.5 list-decimal list-inside text-muted-foreground">
+              <li>iPhone <strong>설정</strong> 앱 열기</li>
+              <li><strong>개인 정보 보호 및 보안</strong> 선택</li>
+              <li><strong>위치 서비스</strong> 선택</li>
+              <li>아래로 스크롤 → <strong>Safari</strong> 선택</li>
+              <li><strong>앱 사용 중</strong> 또는 <strong>허용</strong>으로 변경</li>
+            </ol>
+            <p className="mt-2.5 text-xs text-muted-foreground/70">
+              설정 변경 후 이 페이지로 돌아와 다시 시도해주세요
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground mb-6 max-w-xs leading-relaxed">
+            브라우저 주소창 왼쪽의 🔒 아이콘을 눌러 위치 권한을 <strong>허용</strong>으로 변경하고 다시 시도해주세요.
+          </p>
+        )}
+
+        <div className="flex gap-3 w-full max-w-xs">
+          <Button onClick={runGpsFlow} className="flex-1 bg-primary text-white rounded-xl h-11">
             다시 시도
           </Button>
-          <Button asChild variant="outline" className="rounded-xl h-11 px-6">
+          <Button asChild variant="outline" className="flex-1 rounded-xl h-11">
             <Link href={`/${locale}`}>홈으로</Link>
           </Button>
         </div>

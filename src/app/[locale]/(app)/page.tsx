@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { CheckCircle2, Award, ChevronRight, Mountain, Sparkles } from "lucide-react";
+import { CheckCircle2, Award, ChevronRight, Mountain, Sparkles, Radio, Users } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserProfile, getUserDiscoveries, getWishlist } from "@/lib/firestore/users";
 import { getOreumCards } from "@/lib/firestore/oreums";
@@ -246,6 +246,77 @@ export default function HomePage() {
           </section>
         )}
 
+        {/* ── 활동 피드 프리뷰 ────────────────────────── */}
+        {feedEvents.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold">탐험가 활동</h2>
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded-full">
+                  <Radio size={8} className="animate-pulse" /> LIVE
+                </span>
+              </div>
+              <Link href={`/${locale}/feed`} className="text-xs text-primary font-semibold flex items-center gap-0.5">
+                전체 보기 <ChevronRight size={12} />
+              </Link>
+            </div>
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+              {feedEvents.slice(0, 5).map((event, i) => (
+                <div
+                  key={event.id}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3",
+                    i < feedEvents.slice(0, 5).length - 1 && "border-b border-border/60"
+                  )}
+                >
+                  <Avatar className="w-8 h-8 shrink-0">
+                    <AvatarImage src={event.userAvatarUrl ?? undefined} />
+                    <AvatarFallback className="text-[11px] bg-primary/10 text-primary font-semibold">
+                      {event.userNickname[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm leading-snug">
+                      <span className="font-semibold">{event.userNickname}</span>
+                      {event.eventType === "discovery" && event.oreumNameKo && (
+                        <span className="text-muted-foreground">
+                          {" "}님이{" "}
+                          <Link href={`/${locale}/oreum/${event.oreumSlug}`} className="text-foreground font-medium hover:text-primary">
+                            {event.oreumNameKo}
+                          </Link>
+                          {" "}발견
+                        </span>
+                      )}
+                      {event.eventType === "badge_earned" && event.badgeNameKo && (
+                        <span className="text-muted-foreground"> 님이 <span className="text-amber-600 font-medium">{event.badgeNameKo}</span> 배지 획득</span>
+                      )}
+                      {event.eventType === "wishlist_completed" && (
+                        <span className="text-muted-foreground"> 님이 챌린지 완료</span>
+                      )}
+                    </p>
+                    <p className="text-muted-foreground text-[11px] mt-0.5">{timeAgo(event.occurredAt)}</p>
+                  </div>
+                  <div className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
+                    event.eventType === "discovery" ? "bg-primary/10" : "bg-amber-100"
+                  )}>
+                    {event.eventType === "discovery"
+                      ? <CheckCircle2 size={12} className="text-primary" strokeWidth={2} />
+                      : <Award size={12} className="text-amber-500" strokeWidth={2} />
+                    }
+                  </div>
+                </div>
+              ))}
+              <Link
+                href={`/${locale}/feed`}
+                className="flex items-center justify-center gap-1.5 py-3 text-xs text-primary font-semibold border-t border-border/60 hover:bg-muted/30 transition-colors"
+              >
+                <Users size={12} /> 더 많은 탐험가 활동 보기
+              </Link>
+            </div>
+          </section>
+        )}
+
         {/* 친구 추천 동선 */}
         <FriendRecommendations />
 
@@ -258,6 +329,13 @@ export default function HomePage() {
           />
         )}
         {loading && <Skeleton className="h-[200px] rounded-2xl" />}
+
+        {/* 구분자 */}
+        <div className="flex items-center gap-3 !mt-6 !mb-1">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-[11px] text-muted-foreground/60 font-medium tracking-wide">지금 여기에 있다면</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
 
         {/* 빠른 인증 카드 */}
         <QuickVerifyCard />
@@ -453,58 +531,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* 활동 피드 */}
-        {feedEvents.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h2 className="text-sm font-semibold">{t("section_feed")}</h2>
-                <p className="text-xs text-muted-foreground">{t("section_feed_sub")}</p>
-              </div>
-              <Link href={`/${locale}/feed`} className="text-xs text-primary font-semibold flex items-center gap-0.5">
-                더 보기 <ChevronRight size={12} />
-              </Link>
-            </div>
-            <div className="space-y-0">
-              {feedEvents.slice(0, 4).map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-3 py-2.5 border-b border-border/60 last:border-0"
-                >
-                  <Avatar className="w-8 h-8 shrink-0">
-                    <AvatarImage src={event.userAvatarUrl ?? undefined} />
-                    <AvatarFallback className="text-[11px] bg-primary/10 text-primary font-semibold">
-                      {event.userNickname[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-snug">
-                      <span className="font-semibold">{event.userNickname}</span>
-                      {event.eventType === "discovery" && event.oreumNameKo && (
-                        <span className="text-muted-foreground">
-                          {" "}<span className="text-foreground font-medium">{event.oreumNameKo}</span> 발견
-                        </span>
-                      )}
-                      {event.eventType === "badge_earned" && event.badgeNameKo && (
-                        <span className="text-muted-foreground"> {event.badgeNameKo} 배지 획득</span>
-                      )}
-                    </p>
-                    <p className="text-muted-foreground text-xs mt-0.5">{timeAgo(event.occurredAt)}</p>
-                  </div>
-                  <div className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
-                    event.eventType === "discovery" ? "bg-primary/10" : "bg-amber-100"
-                  )}>
-                    {event.eventType === "discovery"
-                      ? <CheckCircle2 size={12} className="text-primary" strokeWidth={2} />
-                      : <Award size={12} className="text-amber-500" strokeWidth={2} />
-                    }
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );

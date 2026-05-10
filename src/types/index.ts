@@ -35,6 +35,7 @@ export interface Oreum {
   recommendedTimes: TimeOfDay[];
   emotionalKeywords: string[];
   mbti: string | null;
+  illustrationUrl: string | null;
   photoUrls: string[];
   thumbnailUrl: string | null;
   hasCrater: boolean | null;
@@ -67,6 +68,7 @@ export interface UserProfile {
   nickname: string;
   avatarUrl: string | null;
   oreumMbti: string | null;
+  favoriteOreumIds?: string[];
   bio: string | null;
   followerCount?: number;
   followingCount?: number;
@@ -140,11 +142,16 @@ export interface FeedEvent {
 }
 
 // ── 챌린지 ──────────────────────────────────────────────────
+export type ChallengeType = "weekly" | "monthly" | "seasonal" | "permanent";
+
 export interface Challenge {
   id: string;
   code: string;
   nameKo: string;
   descriptionKo: string;
+  challengeType: ChallengeType;
+  startsAt: string | null;
+  endsAt: string | null;
   conditionType: "region_complete" | "tier_complete" | "count" | "specific_set";
   conditionValue: Record<string, unknown>;
   rewardBadgeCode: string | null;

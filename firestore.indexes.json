@@ -139,20 +139,6 @@
       "collectionGroup": "discoveries",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "oreumSlug",   "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "discoveries",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "discoveredAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "discoveries",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
         { "fieldPath": "oreumTier",   "order": "ASCENDING" },
         { "fieldPath": "discoveredAt","order": "DESCENDING" }
       ]
@@ -162,13 +148,6 @@
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "isRead",      "order": "ASCENDING" },
-        { "fieldPath": "createdAt",   "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "notifications",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
         { "fieldPath": "createdAt",   "order": "DESCENDING" }
       ]
     }

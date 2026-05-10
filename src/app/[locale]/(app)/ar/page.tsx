@@ -29,6 +29,21 @@ const DEFAULT_LAYERS: Record<Layer, boolean> = {
   oreum: true, mountain: true, sea_landmark: false, merchant: false,
 };
 
+// 기기/브라우저 판별
+function detectDevice(): "ios" | "android" | "other" {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
+  if (/Android/.test(ua)) return "android";
+  return "other";
+}
+
+type ArError = {
+  title: string;
+  desc: string;
+  steps: string[];
+};
+
 export default function ArPage() {
   const router   = useRouter();
   const locale   = useLocale();
@@ -37,8 +52,8 @@ export default function ArPage() {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const streamRef  = useRef<MediaStream | null>(null);
 
-  const [phase, setPhase]           = useState<"safety" | "loading" | "ready" | "error">("safety");
-  const [errorMsg, setErrorMsg]     = useState("");
+  const [phase, setPhase]       = useState<"safety" | "loading" | "ready" | "error">("safety");
+  const [arError, setArError]   = useState<ArError | null>(null);
   const [layers, setLayers]         = useState<Record<Layer, boolean>>(DEFAULT_LAYERS);
   const [showLayers, setShowLayers] = useState(false);
   const [objects, setObjects]       = useState<ArObject[]>([]);
@@ -63,32 +78,191 @@ export default function ArPage() {
 
   const startAr = useCallback(async () => {
     setPhase("loading");
+    setArError(null);
+
+    const device = detectDevice();
+
+    const throwErr = (err: ArError): never => { throw err; };
+
+    // ── API 지원 확인 ─────────────────────────────────────────
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throwErr({
+        title: "이 브라우저는 카메라를 지원하지 않아요",
+        desc: device === "ios"
+          ? "iOS Safari 최신 버전을 사용해주세요."
+          : "Chrome 최신 버전으로 업데이트 후 다시 시도해주세요.",
+        steps: [],
+      });
+    }
+
+    // ── 카메라 권한 사전 확인 (Permissions API 지원 시) ──────
+    if (navigator.permissions) {
+      try {
+        const camStatus = await navigator.permissions.query({ name: "camera" as PermissionName });
+        if (camStatus.state === "denied") {
+          if (device === "ios") {
+            throwErr({
+              title: "카메라 권한이 차단되어 있어요",
+              desc: "이전에 거부한 권한을 iPhone 설정에서 다시 허용해야 해요.",
+              steps: [
+                "iPhone 설정 앱 열기",
+                "아래로 스크롤 → Safari 선택",
+                "카메라 → '허용'으로 변경",
+                "이 페이지로 돌아와 다시 시도",
+              ],
+            });
+          } else if (device === "android") {
+            throwErr({
+              title: "카메라 권한이 차단되어 있어요",
+              desc: "이전에 거부한 권한을 Chrome 설정에서 다시 허용해야 해요.",
+              steps: [
+                "주소창 왼쪽 🔒 아이콘 탭",
+                "'권한' 선택",
+                "카메라 → '허용'으로 변경",
+                "페이지 새로고침 후 다시 시도",
+              ],
+            });
+          }
+        }
+      } catch { /* Permissions API 미지원 시 무시 */ }
+    }
+
     try {
-      // iOS 나침반 권한
-      if (typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === "function") {
-        const perm = await (DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission();
-        if (perm !== "granted") setCompassAvail(false);
+      // ① 카메라 권한을 가장 먼저 요청 (iOS는 user gesture context가 await마다 약해짐)
+      let stream!: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+      } catch (err) {
+        const e = err as DOMException;
+        if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError") {
+          if (device === "ios") {
+            throwErr({
+              title: "카메라 권한이 필요해요",
+              desc: "iPhone Safari에서 카메라 권한을 허용해주세요.",
+              steps: [
+                "iPhone 설정 앱 열기",
+                "아래로 스크롤 → Safari 선택",
+                "카메라 → '허용'으로 변경",
+                "이 페이지로 돌아와 다시 시도",
+              ],
+            });
+          } else if (device === "android") {
+            throwErr({
+              title: "카메라 권한이 필요해요",
+              desc: "Chrome에서 카메라 권한을 허용해주세요.",
+              steps: [
+                "주소창 왼쪽 🔒 아이콘 탭",
+                "'권한' 또는 '사이트 설정' 선택",
+                "카메라 → '허용'으로 변경",
+                "페이지 새로고침 후 다시 시도",
+              ],
+            });
+          } else {
+            throwErr({
+              title: "카메라 권한이 필요해요",
+              desc: "브라우저에서 카메라 접근을 허용해주세요.",
+              steps: ["주소창 근처의 🔒 또는 ⚙️ 아이콘을 눌러 카메라 권한을 '허용'으로 변경하세요."],
+            });
+          }
+        }
+        if (e.name === "NotFoundError" || e.name === "DevicesNotFoundError") {
+          throwErr({
+            title: "카메라를 찾을 수 없어요",
+            desc: "이 기기에서 후면 카메라를 인식하지 못했어요.",
+            steps: ["다른 브라우저로 시도하거나, 기기에 카메라가 있는지 확인해주세요."],
+          });
+        }
+        throwErr({
+          title: "카메라를 시작할 수 없어요",
+          desc: e.message,
+          steps: ["브라우저를 재시작하고 다시 시도해주세요."],
+        });
       }
 
-      // GPS
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
-      );
-      const { latitude: lat, longitude: lng, altitude: alt } = pos.coords;
-      setUserPos({ lat, lng, alt: alt ?? 0 });
-
-      // 카메라
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        try { await videoRef.current.play(); } catch { /* autoplay 정책 허용 */ }
       }
 
-      // AR 객체 조회
+      // ② iOS 13+ 나침반 권한 (카메라 다음으로 요청)
+      if (
+        typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> })
+          .requestPermission === "function"
+      ) {
+        try {
+          const perm = await (
+            DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }
+          ).requestPermission();
+          if (perm !== "granted") setCompassAvail(false);
+        } catch {
+          setCompassAvail(false);
+        }
+      }
+
+      // ③ GPS (나침반 이후)
+      let pos!: GeolocationPosition;
+      try {
+        pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 12000,
+          })
+        );
+      } catch (err) {
+        const e = err as GeolocationPositionError;
+        if (e.code === 1 /* PERMISSION_DENIED */) {
+          if (device === "ios") {
+            throwErr({
+              title: "위치 권한이 필요해요",
+              desc: "iPhone Safari에서 위치 접근을 허용해주세요.",
+              steps: [
+                "iPhone 설정 앱 열기",
+                "개인 정보 보호 및 보안 → 위치 서비스",
+                "아래로 스크롤 → Safari → '앱 사용 중' 선택",
+                "이 페이지로 돌아와 다시 시도",
+              ],
+            });
+          } else if (device === "android") {
+            throwErr({
+              title: "위치 권한이 필요해요",
+              desc: "Chrome에서 위치 접근을 허용해주세요.",
+              steps: [
+                "주소창 왼쪽 🔒 아이콘 탭",
+                "'권한' 또는 '사이트 설정' 선택",
+                "위치 → '허용'으로 변경",
+                "페이지 새로고침 후 다시 시도",
+              ],
+            });
+          } else {
+            throwErr({
+              title: "위치 권한이 필요해요",
+              desc: "브라우저에서 위치 접근을 허용해주세요.",
+              steps: ["주소창 근처의 🔒 아이콘을 눌러 위치 권한을 '허용'으로 변경하세요."],
+            });
+          }
+        }
+        if (e.code === 3 /* TIMEOUT */) {
+          throwErr({
+            title: "위치를 가져올 수 없어요",
+            desc: "GPS 신호가 약해요. 야외로 이동 후 다시 시도해주세요.",
+            steps: [],
+          });
+        }
+        throwErr({
+          title: "위치를 가져올 수 없어요",
+          desc: "GPS가 켜져 있는지 확인하고 다시 시도해주세요.",
+          steps: [],
+        });
+      }
+
+      const { latitude: lat, longitude: lng, altitude: alt } = pos.coords;
+      setUserPos({ lat, lng, alt: alt ?? 0 });
+
+      // ④ AR 객체 조회
       const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
       if (user?.uid) params.set("uid", user.uid);
       const res = await fetch(`/api/ar/objects?${params}`);
@@ -101,7 +275,17 @@ export default function ArPage() {
 
       setPhase("ready");
     } catch (e: unknown) {
-      setErrorMsg(e instanceof Error ? e.message : "카메라 또는 위치 권한이 필요해요");
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      if (e && typeof e === "object" && "title" in e) {
+        setArError(e as ArError);
+      } else {
+        setArError({
+          title: "AR을 시작할 수 없어요",
+          desc: e instanceof Error ? e.message : "알 수 없는 오류가 발생했어요.",
+          steps: ["브라우저를 재시작하고 다시 시도해주세요."],
+        });
+      }
       setPhase("error");
     }
   }, [user]);
@@ -179,20 +363,57 @@ export default function ArPage() {
   }
 
   // 오류
-  if (phase === "error") {
+  if (phase === "error" && arError) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-4">
-        <TriangleAlert size={36} className="text-destructive" />
-        <p className="font-semibold text-center">{errorMsg}</p>
-        <p className="text-sm text-muted-foreground text-center">
-          카메라와 위치 권한을 허용한 뒤 다시 시도하세요
-        </p>
-        <button
-          onClick={() => router.back()}
-          className="px-6 py-2.5 rounded-xl border text-sm"
-        >
-          돌아가기
-        </button>
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex items-center gap-3 px-4 py-4 border-b">
+          <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted">
+            <X size={18} />
+          </button>
+          <h1 className="font-bold">AR 둘러보기</h1>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center p-6 max-w-sm mx-auto w-full">
+          <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
+            <TriangleAlert size={26} className="text-red-500" />
+          </div>
+
+          <h2 className="text-lg font-bold mb-1">{arError.title}</h2>
+          {arError.desc && (
+            <p className="text-sm text-muted-foreground mb-5">{arError.desc}</p>
+          )}
+
+          {arError.steps.length > 0 && (
+            <div className="bg-muted/50 rounded-2xl p-4 border border-border mb-6">
+              <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">해결 방법</p>
+              <ol className="space-y-2.5">
+                {arError.steps.map((step, i) => (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <span className="text-sm leading-snug">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => { setArError(null); setPhase("safety"); }}
+              className="w-full py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm"
+            >
+              다시 시도
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="w-full py-3.5 rounded-2xl border text-sm font-medium"
+            >
+              돌아가기
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
