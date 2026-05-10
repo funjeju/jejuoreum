@@ -73,9 +73,10 @@ export default function ArPage() {
 
     const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
       let raw: number | null = null;
-      if (typeof e.webkitCompassHeading === "number") {
+      // isFinite 체크: NaN도 typeof "number" 통과하므로 반드시 필요
+      if (typeof e.webkitCompassHeading === "number" && isFinite(e.webkitCompassHeading)) {
         raw = e.webkitCompassHeading;
-      } else if (e.alpha !== null) {
+      } else if (e.alpha !== null && isFinite(e.alpha)) {
         raw = (360 - e.alpha) % 360;
       }
       if (raw === null) return;
@@ -338,7 +339,8 @@ export default function ArPage() {
   useEffect(() => {
     if (phase !== "ready" || !userPos) return;
     const { innerWidth: W, innerHeight: H } = window;
-    const FOV = 60;
+    // compassAvail=false면 나침반 없는 것 → 모든 방향 라벨 표시 (FOV 360)
+    const FOV = compassAvail ? 60 : 360;
 
     const next: ArObjectWithScreen[] = [];
     for (const obj of objects) {
