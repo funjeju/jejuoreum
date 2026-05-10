@@ -485,11 +485,11 @@ export default function ArPage() {
 
       {/* AR 라벨 오버레이 */}
       <div className="absolute inset-0 pointer-events-none">
-        {visible.map((obj) => (
-          <ArLabel
-            key={obj.id}
-            obj={obj}
-            onClick={() => setSelected(obj)}
+        {groupLabels(visible, 50).map((group) => (
+          <ArLabelGroup
+            key={group[0].id}
+            group={group}
+            onSelect={setSelected}
           />
         ))}
       </div>
@@ -571,11 +571,107 @@ export default function ArPage() {
   );
 }
 
+// ── 화면 좌표 기준 50px 이내 라벨을 묶음 ────────────────────────
+function groupLabels(labels: ArObjectWithScreen[], threshold: number): ArObjectWithScreen[][] {
+  const groups: ArObjectWithScreen[][] = [];
+  const used = new Set<string>();
+  for (const label of labels) {
+    if (used.has(label.id)) continue;
+    const group: ArObjectWithScreen[] = [label];
+    used.add(label.id);
+    for (const other of labels) {
+      if (used.has(other.id)) continue;
+      const near = group.some((g) => {
+        const dx = g.screenX - other.screenX;
+        const dy = g.screenY - other.screenY;
+        return dx * dx + dy * dy < threshold * threshold;
+      });
+      if (near) { group.push(other); used.add(other.id); }
+    }
+    groups.push(group);
+  }
+  return groups;
+}
+
+// ── 그룹 컨테이너 ──────────────────────────────────────────────
+function ArLabelGroup({
+  group, onSelect,
+}: {
+  group: ArObjectWithScreen[];
+  onSelect: (obj: ArObjectWithScreen) => void;
+}) {
+  const [frontId, setFrontId] = useState(group[0].id);
+  const [expanded, setExpanded] = useState(false);
+
+  const front = group.find((o) => o.id === frontId) ?? group[0];
+  const ordered = [front, ...group.filter((o) => o.id !== frontId)];
+
+  return (
+    <>
+      {ordered.map((obj, idx) => {
+        if (!expanded && idx > 2) return null;
+
+        let dx = 0, dy = 0, opacity = 1, sm = 1;
+
+        if (expanded) {
+          // 반원 부채꼴: 위쪽 180도 (90°~270°)
+          const n = ordered.length;
+          const range = Math.min(140, (n - 1) * 40);
+          const startDeg = 270 - range / 2;
+          const stepDeg = n > 1 ? range / (n - 1) : 0;
+          const rad = ((startDeg + idx * stepDeg) * Math.PI) / 180;
+          dx = Math.cos(rad) * 80;
+          dy = Math.sin(rad) * 80;
+        } else {
+          // 겹쳐 쌓기: 오른쪽·위로 9px씩 어긋남
+          dx = idx * 9;
+          dy = idx * -9;
+          opacity = idx === 0 ? 1 : idx === 1 ? 0.72 : 0.5;
+          sm     = idx === 0 ? 1 : idx === 1 ? 0.92 : 0.84;
+        }
+
+        return (
+          <ArLabel
+            key={obj.id}
+            obj={obj}
+            posX={front.screenX + dx}
+            posY={front.screenY + dy}
+            drawScale={obj.scale * sm}
+            opacity={opacity}
+            zIndex={ordered.length - idx + (expanded ? 10 : 0)}
+            onClick={() => {
+              if (expanded) {
+                setFrontId(obj.id); setExpanded(false); onSelect(obj);
+              } else if (idx === 0) {
+                if (group.length > 1) setExpanded(true); else onSelect(obj);
+              } else {
+                setFrontId(obj.id);
+              }
+            }}
+          />
+        );
+      })}
+
+      {/* 3개 초과 시 뱃지 */}
+      {!expanded && group.length > 3 && (
+        <div
+          style={{ position: "absolute", left: front.screenX + 20, top: front.screenY - 18, zIndex: 99, pointerEvents: "none" }}
+          className="bg-white rounded-full w-5 h-5 text-[9px] font-bold text-gray-700 flex items-center justify-center shadow"
+        >
+          +{group.length - 2}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── 개별 라벨 ──────────────────────────────────────────────────
 function ArLabel({
-  obj,
-  onClick,
+  obj, posX, posY, drawScale, opacity = 1, zIndex = 0, onClick,
 }: {
   obj: ArObjectWithScreen;
+  posX: number; posY: number; drawScale: number;
+  opacity?: number; zIndex?: number;
   onClick: () => void;
 }) {
   const cfg = LAYER_CONFIG[obj.type as Layer];
@@ -587,10 +683,13 @@ function ArLabel({
       onClick={onClick}
       style={{
         position: "absolute",
-        left: obj.screenX,
-        top: obj.screenY,
-        transform: `translate(-50%, -50%) scale(${obj.scale})`,
+        left: posX,
+        top: posY,
+        transform: `translate(-50%, -50%) scale(${drawScale})`,
+        opacity,
+        zIndex,
         pointerEvents: "auto",
+        transition: "opacity 0.15s, transform 0.15s",
       }}
       className="flex flex-col items-center gap-0.5"
     >
@@ -609,10 +708,7 @@ function ArLabel({
           {formatDist(obj.distM)} · {bearingLabel(obj.bearingDeg)}
         </p>
       </div>
-      <div
-        className="w-0.5 h-4 rounded-full opacity-60"
-        style={{ backgroundColor: cfg.color }}
-      />
+      <div className="w-0.5 h-4 rounded-full opacity-60" style={{ backgroundColor: cfg.color }} />
     </button>
   );
 }
