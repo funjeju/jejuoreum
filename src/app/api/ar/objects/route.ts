@@ -3,7 +3,10 @@ import { adminDb } from "@/lib/firebase/admin";
 import { STATIC_LANDMARKS } from "@/lib/ar/landmarks";
 import type { ArObject } from "@/types/ar";
 
-const MAX_DISTANCE_KM = 25; // 25km 이내 오름만
+// radius 파라미터: 1~25km, 기본 10km
+function getMaxDistKm(searchParams: URLSearchParams): number {
+  return Math.min(25, Math.max(1, parseFloat(searchParams.get("radius") ?? "10")));
+}
 
 function distKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -22,6 +25,7 @@ export async function GET(req: NextRequest) {
   const lat = parseFloat(searchParams.get("lat") ?? "");
   const lng = parseFloat(searchParams.get("lng") ?? "");
   const uid = searchParams.get("uid") ?? null;
+  const MAX_DISTANCE_KM = getMaxDistKm(searchParams);
 
   if (isNaN(lat) || isNaN(lng)) {
     return NextResponse.json({ error: "lat,lng required" }, { status: 400 });

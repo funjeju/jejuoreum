@@ -65,6 +65,7 @@ export default function ArPage() {
   const [userPos, setUserPos]       = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const [heading, setHeading]       = useState(0);
   const [compassAvail, setCompassAvail] = useState(true);
+  const [radius, setRadius] = useState(10);
 
   // 나침반 수신 (low-pass filter + iOS webkitCompassHeading + 이벤트 중복 방지)
   useEffect(() => {
@@ -101,6 +102,18 @@ export default function ArPage() {
     w.addEventListener(evtName, handler as EventListener);
     return () => w.removeEventListener(evtName, handler as EventListener);
   }, []);
+
+  const fetchArObjects = useCallback(async (pos: { lat: number; lng: number }, r: number) => {
+    const params = new URLSearchParams({ lat: String(pos.lat), lng: String(pos.lng), radius: String(r) });
+    if (user?.uid) params.set("uid", user.uid);
+    const res = await fetch(`/api/ar/objects?${params}`);
+    const data = await res.json();
+    setObjects([
+      ...(data.oreums ?? []),
+      ...(data.landmarks ?? []),
+      ...(data.merchants ?? []),
+    ]);
+  }, [user]);
 
   const startAr = useCallback(async () => {
     setPhase("loading");
@@ -299,18 +312,6 @@ export default function ArPage() {
 
       const { latitude: lat, longitude: lng, altitude: alt } = pos.coords;
       setUserPos({ lat, lng, alt: alt ?? 0 });
-
-      // ④ AR 객체 조회
-      const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
-      if (user?.uid) params.set("uid", user.uid);
-      const res = await fetch(`/api/ar/objects?${params}`);
-      const data = await res.json();
-      setObjects([
-        ...(data.oreums ?? []),
-        ...(data.landmarks ?? []),
-        ...(data.merchants ?? []),
-      ]);
-
       setPhase("ready");
     } catch (e: unknown) {
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -326,7 +327,7 @@ export default function ArPage() {
       }
       setPhase("error");
     }
-  }, [user]);
+  }, []);
 
   // phase가 ready로 바뀐 후 video 엘리먼트가 마운트되면 스트림 연결
   useEffect(() => {
@@ -334,6 +335,12 @@ export default function ArPage() {
     videoRef.current.srcObject = streamRef.current;
     videoRef.current.play().catch(() => {});
   }, [phase]);
+
+  // AR 객체 조회 (초기 로드 + 반경 변경 시 재조회)
+  useEffect(() => {
+    if (phase !== "ready" || !userPos) return;
+    fetchArObjects(userPos, radius);
+  }, [phase, userPos, radius, fetchArObjects]);
 
   // 라벨 위치 계산 (프레임마다)
   useEffect(() => {
@@ -543,6 +550,23 @@ export default function ArPage() {
               </span>
             </button>
           ))}
+          <div className="mt-2 pt-2 border-t border-white/20">
+            <p className="text-white/50 text-[10px] px-2 mb-1.5">반경</p>
+            <div className="flex gap-1 px-2">
+              {[5, 10, 15].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRadius(r)}
+                  className={cn(
+                    "flex-1 py-1 rounded-lg text-xs font-semibold transition-colors",
+                    radius === r ? "bg-white text-black" : "text-white/70 hover:bg-white/10"
+                  )}
+                >
+                  {r}km
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
