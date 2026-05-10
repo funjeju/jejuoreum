@@ -305,6 +305,13 @@ export default function ArPage() {
     }
   }, [user]);
 
+  // phase가 ready로 바뀐 후 video 엘리먼트가 마운트되면 스트림 연결
+  useEffect(() => {
+    if (phase !== "ready" || !videoRef.current || !streamRef.current) return;
+    videoRef.current.srcObject = streamRef.current;
+    videoRef.current.play().catch(() => {});
+  }, [phase]);
+
   // 라벨 위치 계산 (프레임마다)
   useEffect(() => {
     if (phase !== "ready" || !userPos) return;
