@@ -42,6 +42,7 @@ type ArError = {
   title: string;
   desc: string;
   steps: string[];
+  cameraGranted?: boolean; // 카메라는 성공했지만 다음 단계(위치 등)에서 실패한 경우
 };
 
 export default function ArPage() {
@@ -188,7 +189,8 @@ export default function ArPage() {
           if (device === "ios") {
             throwErr({
               title: "위치 권한이 필요해요",
-              desc: "iPhone Safari에서 위치 접근을 허용해주세요.",
+              desc: "카메라는 허용됐어요. 이제 위치 권한도 설정해주세요.",
+              cameraGranted: true,
               steps: [
                 "iPhone 설정 앱 열기",
                 "개인 정보 보호 및 보안 → 위치 서비스",
@@ -199,7 +201,8 @@ export default function ArPage() {
           } else if (device === "android") {
             throwErr({
               title: "위치 권한이 필요해요",
-              desc: "Chrome에서 위치 접근을 허용해주세요.",
+              desc: "카메라는 허용됐어요. 위치 권한도 허용해주세요.",
+              cameraGranted: true,
               steps: [
                 "주소창 왼쪽 🔒 아이콘 탭",
                 "'권한' 또는 '사이트 설정' 선택",
@@ -210,7 +213,8 @@ export default function ArPage() {
           } else {
             throwErr({
               title: "위치 권한이 필요해요",
-              desc: "브라우저에서 위치 접근을 허용해주세요.",
+              desc: "카메라는 허용됐어요. 브라우저에서 위치 접근도 허용해주세요.",
+              cameraGranted: true,
               steps: ["주소창 근처의 🔒 아이콘을 눌러 위치 권한을 '허용'으로 변경하세요."],
             });
           }
@@ -347,6 +351,17 @@ export default function ArPage() {
           <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mb-5">
             <TriangleAlert size={26} className="text-red-500" />
           </div>
+
+          {arError.cameraGranted && (
+            <div className="flex gap-2 mb-4">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                <Check size={11} /> 카메라
+              </span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
+                <TriangleAlert size={11} /> 위치
+              </span>
+            </div>
+          )}
 
           <h2 className="text-lg font-bold mb-1">{arError.title}</h2>
           {arError.desc && (

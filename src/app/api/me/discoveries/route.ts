@@ -123,32 +123,59 @@ export async function POST(req: NextRequest) {
     newBadges.push({ code: seed.code, nameKo: seed.nameKo, tier: seed.tier });
   }
 
-  // ── 피드 이벤트 ──────────────────────────────────────────
+  // ── 프로필 조회 (피드 이벤트 공통) ──────────────────────────
+  const profileSnap = await userRef.get();
+  const profile = profileSnap.data();
+  const FEED_EXPIRY_7D  = new Date(Date.now() + 7  * 24 * 60 * 60 * 1000).toISOString();
+  const FEED_EXPIRY_30D = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  // ── 발견 피드 이벤트 ──────────────────────────────────────
   if (visibility !== "private") {
-    const profileSnap = await userRef.get();
-    const profile = profileSnap.data();
     const delayMin = visibility === "delay_10min" ? 10 : 0;
     const publishAt = new Date(Date.now() + delayMin * 60 * 1000).toISOString();
-
     await adminDb.collection("feedEvents").add({
       uid,
-      userNickname:  profile?.nickname ?? "탐험가",
-      userAvatarUrl: profile?.avatarUrl ?? null,
-      eventType:     "discovery",
-      oreumId,
-      oreumSlug,
-      oreumNameKo,
-      oreumRegion:   oreumRegion ?? null,
-      visibility:    "public",
-      occurredAt:    now,
+      userNickname:    profile?.nickname ?? "탐험가",
+      userAvatarUrl:   profile?.avatarUrl ?? null,
+      eventType:       "discovery",
+      oreumId, oreumSlug, oreumNameKo,
+      oreumRegion:     oreumRegion ?? null,
+      badgeCode:       null, badgeNameKo: null, badgeTier: null,
+      challengeId:     null, challengeNameKo: null,
+      visibility:      "public",
+      occurredAt:      now,
       publishAt,
-      expiresAt:     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      expiresAt:       FEED_EXPIRY_7D,
+    });
+  }
+
+  // ── 배지 피드 이벤트 (발견 공개 여부 무관, 항상 공개) ─────
+  for (const badge of newBadges) {
+    await adminDb.collection("feedEvents").add({
+      uid,
+      userNickname:    profile?.nickname ?? "탐험가",
+      userAvatarUrl:   profile?.avatarUrl ?? null,
+      eventType:       "badge_earned",
+      oreumId:         oreumId ?? null,
+      oreumSlug:       oreumSlug ?? null,
+      oreumNameKo:     oreumNameKo ?? null,
+      oreumRegion:     oreumRegion ?? null,
+      badgeCode:       badge.code,
+      badgeNameKo:     badge.nameKo,
+      badgeTier:       badge.tier,
+      challengeId:     null, challengeNameKo: null,
+      visibility:      "public",
+      occurredAt:      now,
+      publishAt:       now,
+      expiresAt:       FEED_EXPIRY_30D,
     });
   }
 
   // ── 챌린지 업데이트 ───────────────────────────────────────
   const challengesSnap = await userRef.collection("challenges")
     .where("isCompleted", "==", false).get();
+  const completedChallenges: { challengeId: string; challengeNameKo: string }[] = [];
+
   for (const ch of challengesSnap.docs) {
     const data = ch.data();
 
@@ -170,9 +197,31 @@ export async function POST(req: NextRequest) {
       if (newProgress >= data.goal) {
         update.isCompleted = true;
         update.completedAt = now;
+        completedChallenges.push({
+          challengeId:     data.challengeId,
+          challengeNameKo: data.challengeNameKo,
+        });
       }
       await ch.ref.update(update);
     }
+  }
+
+  // ── 챌린지 완료 피드 이벤트 ──────────────────────────────
+  for (const ch of completedChallenges) {
+    await adminDb.collection("feedEvents").add({
+      uid,
+      userNickname:    profile?.nickname ?? "탐험가",
+      userAvatarUrl:   profile?.avatarUrl ?? null,
+      eventType:       "challenge_completed",
+      oreumId:         null, oreumSlug: null, oreumNameKo: null, oreumRegion: null,
+      badgeCode:       null, badgeNameKo: null, badgeTier: null,
+      challengeId:     ch.challengeId,
+      challengeNameKo: ch.challengeNameKo,
+      visibility:      "public",
+      occurredAt:      now,
+      publishAt:       now,
+      expiresAt:       FEED_EXPIRY_30D,
+    });
   }
 
   // ── 위시리스트 자동 제거 ──────────────────────────────────

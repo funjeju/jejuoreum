@@ -127,7 +127,7 @@ export interface UserBadge {
 // ── 피드 ────────────────────────────────────────────────────
 export interface FeedEvent {
   id: string;
-  eventType: "discovery" | "badge_earned" | "wishlist_completed";
+  eventType: "discovery" | "badge_earned" | "challenge_completed";
   uid: string;
   userNickname: string;
   userAvatarUrl: string | null;
@@ -137,6 +137,9 @@ export interface FeedEvent {
   oreumRegion: Region | null;
   badgeCode: string | null;
   badgeNameKo: string | null;
+  badgeTier: string | null;
+  challengeId: string | null;
+  challengeNameKo: string | null;
   visibility: "public" | "private";
   occurredAt: string;
 }

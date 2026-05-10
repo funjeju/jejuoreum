@@ -290,8 +290,8 @@ export default function HomePage() {
                       {event.eventType === "badge_earned" && event.badgeNameKo && (
                         <span className="text-muted-foreground"> 님이 <span className="text-amber-600 font-medium">{event.badgeNameKo}</span> 배지 획득</span>
                       )}
-                      {event.eventType === "wishlist_completed" && (
-                        <span className="text-muted-foreground"> 님이 챌린지 완료</span>
+                      {event.eventType === "challenge_completed" && (
+                        <span className="text-muted-foreground"> 님이 <span className="text-blue-600 font-medium">{event.challengeNameKo ?? "챌린지"}</span> 완료</span>
                       )}
                     </p>
                     <p className="text-muted-foreground text-[11px] mt-0.5">{timeAgo(event.occurredAt)}</p>

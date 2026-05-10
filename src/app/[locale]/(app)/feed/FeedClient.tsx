@@ -13,7 +13,7 @@ import { cn, timeAgo } from "@/lib/utils";
 import type { FeedEvent, Region } from "@/types";
 
 type FeedMode = "all" | "friends";
-type Filter = "all" | "discovery" | "badge_earned" | "wishlist_completed";
+type Filter = "all" | "discovery" | "badge_earned" | "challenge_completed";
 type RegionFilter = "all" | Region;
 
 const PAGE_SIZE = 20;
@@ -22,7 +22,7 @@ const EVENT_FILTERS: { key: Filter; label: string }[] = [
   { key: "all",                label: "전체" },
   { key: "discovery",          label: "발견" },
   { key: "badge_earned",       label: "배지" },
-  { key: "wishlist_completed", label: "챌린지" },
+  { key: "challenge_completed", label: "챌린지" },
 ];
 
 const REGION_FILTERS: { key: RegionFilter; label: string }[] = [
@@ -212,8 +212,9 @@ export default function FeedClient() {
 }
 
 function FeedCard({ event, locale }: { event: FeedEvent; locale: string }) {
-  const isDiscovery = event.eventType === "discovery";
-  const isBadge     = event.eventType === "badge_earned";
+  const isDiscovery  = event.eventType === "discovery";
+  const isBadge      = event.eventType === "badge_earned";
+  const isChallenge  = event.eventType === "challenge_completed";
 
   return (
     <div className="bg-card border rounded-2xl px-4 py-3.5 flex items-center gap-3">
@@ -221,9 +222,10 @@ function FeedCard({ event, locale }: { event: FeedEvent; locale: string }) {
         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
         isDiscovery ? "bg-primary/10" : isBadge ? "bg-amber-50" : "bg-blue-50"
       )}>
-        {isDiscovery && <Mountain size={18} className="text-primary" />}
-        {isBadge     && <Award size={18} className="text-amber-500" />}
-        {!isDiscovery && !isBadge && <Target size={18} className="text-blue-500" />}
+        {isDiscovery  && <Mountain size={18} className="text-primary" />}
+        {isBadge      && <Award size={18} className="text-amber-500" />}
+        {isChallenge  && <Target size={18} className="text-blue-500" />}
+        {!isDiscovery && !isBadge && !isChallenge && <Target size={18} className="text-blue-500" />}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -243,7 +245,17 @@ function FeedCard({ event, locale }: { event: FeedEvent; locale: string }) {
           {isBadge && (
             <> 님이 <span className="text-amber-600 font-semibold">&ldquo;{event.badgeNameKo}&rdquo;</span> 배지를 획득했어요</>
           )}
-          {!isDiscovery && !isBadge && (
+          {isChallenge && (
+            <>
+              {" "}님이{" "}
+              {event.challengeNameKo
+                ? <span className="text-blue-600 font-semibold">&ldquo;{event.challengeNameKo}&rdquo;</span>
+                : "챌린지"
+              }
+              {" "}를 완료했어요
+            </>
+          )}
+          {!isDiscovery && !isBadge && !isChallenge && (
             <> 님이 챌린지를 완료했어요</>
           )}
         </p>

@@ -599,10 +599,13 @@ function InfoChip({ icon, label, value }: { icon: React.ReactNode; label: string
 function GallerySection({
   isDiscovered, oreum, user,
 }: { isDiscovered: boolean; oreum: Oreum; user: { uid: string } | null }) {
-  const [photos, setPhotos]       = useState<Photo[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [lightbox, setLightbox]   = useState<Photo | null>(null);
+  const [photos, setPhotos]         = useState<Photo[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [uploading, setUploading]   = useState(false);
+  const [lightbox, setLightbox]     = useState<Photo | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [caption, setCaption]       = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -623,27 +626,42 @@ function GallerySection({
     load();
   }, [oreum.slug, user]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    setPendingFile(file);
+    setCaption("");
+    e.target.value = "";
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!pendingFile || !user) return;
     setUploading(true);
     try {
       const profile = await getUserProfile(user.uid);
       const photo = await uploadAndSavePhoto(
-        user.uid, oreum.slug, oreum.id, file, null, profile?.nickname ?? "탐험가",
+        user.uid, oreum.slug, oreum.id, pendingFile,
+        caption.trim() || null,
+        profile?.nickname ?? "탐험가",
       );
       setPhotos((prev) => [photo, ...prev]);
     } catch {
       // silent — storage may not be configured in dev
     } finally {
       setUploading(false);
-      e.target.value = "";
+      setPendingFile(null);
+      setCaption("");
     }
+  };
+
+  const handleCancelUpload = () => {
+    setPendingFile(null);
+    setCaption("");
   };
 
   return (
     <div className="space-y-3">
-      {isDiscovered && user && (
+      {isDiscovered && user && !pendingFile && (
         <label className={cn(
           "flex items-center gap-2 w-full p-3 rounded-xl border border-dashed transition-colors cursor-pointer",
           uploading ? "border-border opacity-60" : "border-border hover:border-primary/40"
@@ -652,8 +670,41 @@ function GallerySection({
           <span className="text-sm text-muted-foreground">
             {uploading ? "업로드 중..." : "사진 추가하기"}
           </span>
-          <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} disabled={uploading} />
         </label>
+      )}
+
+      {pendingFile && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Camera size={16} className="text-primary shrink-0" />
+            <span className="text-sm font-medium text-foreground truncate">{pendingFile.name}</span>
+          </div>
+          <input
+            type="text"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="사진 설명을 입력하세요 (선택)"
+            maxLength={100}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleCancelUpload}
+              disabled={uploading}
+              className="flex-1 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted/40 transition-colors"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleConfirmUpload}
+              disabled={uploading}
+              className="flex-1 py-2 text-sm rounded-lg bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
+            >
+              {uploading ? "업로드 중..." : "업로드"}
+            </button>
+          </div>
+        </div>
       )}
 
       {loading ? (
