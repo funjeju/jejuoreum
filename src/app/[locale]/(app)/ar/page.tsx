@@ -123,12 +123,11 @@ export default function ArPage() {
           } else if (device === "android") {
             throwErr({
               title: "카메라 권한이 필요해요",
-              desc: "Chrome에서 카메라 권한을 허용해주세요.",
+              desc: "Chrome이 카메라에 접근할 수 없어요. 아래 순서대로 확인해주세요.",
               steps: [
-                "주소창 왼쪽 🔒 아이콘 탭",
-                "'권한' 또는 '사이트 설정' 선택",
-                "카메라 → '허용'으로 변경",
-                "페이지 새로고침 후 다시 시도",
+                "Android 설정 → 앱 → Chrome → 권한 → 카메라 → '허용'",
+                "Chrome으로 돌아와 이 페이지 새로고침",
+                "AR 다시 시작 — 카메라 허용 팝업이 뜨면 허용",
               ],
             });
           } else {
