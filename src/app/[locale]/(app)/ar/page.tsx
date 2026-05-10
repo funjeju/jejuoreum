@@ -52,12 +52,15 @@ export default function ArPage() {
   const locale   = useLocale();
   const { user } = useAuth();
 
-  const videoRef      = useRef<HTMLVideoElement>(null);
-  const streamRef     = useRef<MediaStream | null>(null);
-  const trackRef      = useRef<MediaStreamTrack | null>(null);
-  const arContainerRef = useRef<HTMLDivElement>(null);
-  const pinchRef      = useRef<number | null>(null);
-  const zoomRef       = useRef(1);
+  const videoRef           = useRef<HTMLVideoElement>(null);
+  const streamRef          = useRef<MediaStream | null>(null);
+  const trackRef           = useRef<MediaStreamTrack | null>(null);
+  const arContainerRef     = useRef<HTMLDivElement>(null);
+  const pinchRef           = useRef<number | null>(null);
+  const zoomRef            = useRef(1);
+  // iOS 나침반: requestPermission 후 직접 등록한 리스너 cleanup 저장
+  const compassHandlerRef  = useRef<EventListener | null>(null);
+  const iosCompassCleanup  = useRef<(() => void) | null>(null);
 
   const [phase, setPhase]       = useState<"safety" | "loading" | "ready" | "error">("safety");
   const [arError, setArError]   = useState<ArError | null>(null);
@@ -69,29 +72,25 @@ export default function ArPage() {
   const [userPos, setUserPos]       = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const [heading, setHeading]       = useState(0);
   const [compassAvail, setCompassAvail] = useState(true);
-  const [compassReady, setCompassReady] = useState(false);
   const [radius, setRadius] = useState(15);
+  const [pinchScale, setPinchScale] = useState(1);
 
-  // 나침반 수신 (low-pass filter + iOS webkitCompassHeading + 이벤트 중복 방지)
-  // iOS: requestPermission() 성공 후에야 이벤트 수신 → compassReady=true 시 재등록
+  // 나침반 핸들러 빌드 + 플랫폼별 등록
+  // Android: 마운트 시 바로 등록 (권한 불필요)
+  // iOS: requestPermission() 성공 직후 startAr에서 compassHandlerRef.current 사용해 직접 등록
+  //      (state → re-render → useEffect 사이클 거치면 iOS가 이벤트를 안줌)
   useEffect(() => {
-    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    // iOS면 권한 허가(compassReady=true) 전까지 등록 스킵
-    if (isIos && !compassReady) return;
-
     let smoothed: number | null = null;
     const ALPHA = 0.06;
 
-    const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+    const handler = ((e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
       let raw: number | null = null;
-      // isFinite 체크: NaN도 typeof "number" 통과하므로 반드시 필요
       if (typeof e.webkitCompassHeading === "number" && isFinite(e.webkitCompassHeading)) {
         raw = e.webkitCompassHeading;
       } else if (e.alpha !== null && isFinite(e.alpha)) {
         raw = (360 - e.alpha) % 360;
       }
       if (raw === null) return;
-
       if (smoothed === null) {
         smoothed = raw;
       } else {
@@ -101,7 +100,13 @@ export default function ArPage() {
         smoothed = (smoothed + ALPHA * diff + 360) % 360;
       }
       setHeading(smoothed);
-    };
+    }) as EventListener;
+
+    compassHandlerRef.current = handler;
+
+    // iOS: startAr에서 직접 등록하므로 여기서는 스킵
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIos) return;
 
     // Android: deviceorientationabsolute가 있으면 그것만 등록 (중복 방지)
     const w = window as Window;
@@ -109,9 +114,9 @@ export default function ArPage() {
     const evtName = useAbsolute
       ? "deviceorientationabsolute" as "deviceorientation"
       : "deviceorientation" as const;
-    w.addEventListener(evtName, handler as EventListener);
-    return () => w.removeEventListener(evtName, handler as EventListener);
-  }, [compassReady]);
+    w.addEventListener(evtName, handler);
+    return () => w.removeEventListener(evtName, handler);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchArObjects = useCallback(async (pos: { lat: number; lng: number }, r: number) => {
     const params = new URLSearchParams({ lat: String(pos.lat), lng: String(pos.lng), radius: String(r) });
@@ -236,7 +241,7 @@ export default function ArPage() {
       }
 
       // ② iOS 13+ 나침반 권한 (카메라 다음으로 요청)
-      // 권한 허가 후 setCompassReady(true) → 나침반 useEffect가 리스너를 등록
+      // granted 직후 동기적으로 리스너 등록 — React re-render 사이클을 거치면 iOS가 이벤트를 안 줌
       if (
         typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> })
           .requestPermission === "function"
@@ -246,7 +251,11 @@ export default function ArPage() {
             DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }
           ).requestPermission();
           if (perm === "granted") {
-            setCompassReady(true);
+            const handler = compassHandlerRef.current;
+            if (handler) {
+              window.addEventListener("deviceorientation", handler);
+              iosCompassCleanup.current = () => window.removeEventListener("deviceorientation", handler);
+            }
           } else {
             setCompassAvail(false);
           }
@@ -358,12 +367,12 @@ export default function ArPage() {
     fetchArObjects(userPos, radius);
   }, [phase, userPos, radius, fetchArObjects]);
 
-  // 라벨 위치 계산 (프레임마다)
+  // 라벨 위치 계산 (heading/zoom 바뀔 때마다)
   useEffect(() => {
     if (phase !== "ready" || !userPos) return;
     const { innerWidth: W, innerHeight: H } = window;
-    // compassAvail=false면 나침반 없는 것 → 모든 방향 라벨 표시 (FOV 360)
-    const FOV = compassAvail ? 60 : 360;
+    // pinchScale로 FOV를 좁힘 → 줌인 시 라벨이 화면 중심 방향으로 모여들고 크기도 증가
+    const FOV = (compassAvail ? 60 : 360) / pinchScale;
 
     const next: ArObjectWithScreen[] = [];
     for (const obj of objects) {
@@ -373,17 +382,17 @@ export default function ArPage() {
       const sx = screenX(bear, heading, FOV, W);
       if (sx === null) continue;
       const sy = screenY(obj.elevation, userPos.alt, dist, H);
-      const scale = labelScale(dist);
+      const scale = labelScale(dist) * pinchScale;
       next.push({ ...obj, distM: dist, bearingDeg: bear, screenX: sx, screenY: sy, scale });
     }
-    // 거리 순 정렬 (가까운 것이 위)
     next.sort((a, b) => a.distM - b.distM);
-    setVisible(next.slice(0, 20)); // 최대 20개
-  }, [heading, objects, phase, userPos, layers]);
+    setVisible(next.slice(0, 20));
+  }, [heading, objects, phase, userPos, layers, compassAvail, pinchScale]);
 
-  // 핀치 줌 (Android Chrome: native 동작 없음 → applyConstraints로 직접 처리)
+  // 핀치 줌 (Android Chrome 전용: iOS는 native camera zoom이 있어서 건드리지 않음)
   useEffect(() => {
     if (phase !== "ready") return;
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return;
     const el = arContainerRef.current;
     if (!el) return;
 
@@ -404,15 +413,23 @@ export default function ArPage() {
       const ratio = dist / pinchRef.current;
       pinchRef.current = dist;
 
-      const track = trackRef.current;
-      if (!track) return;
-      type ZoomCaps = MediaTrackCapabilities & { zoom?: { min: number; max: number } };
-      const caps = track.getCapabilities() as ZoomCaps;
-      if (!caps.zoom) return;
+      // 줌 레벨 갱신 (1x ~ 5x)
+      const newZoom = Math.min(5, Math.max(1, zoomRef.current * ratio));
+      zoomRef.current = newZoom;
 
-      const next = Math.min(caps.zoom.max, Math.max(caps.zoom.min, zoomRef.current * ratio));
-      zoomRef.current = next;
-      track.applyConstraints({ advanced: [{ zoom: next } as MediaTrackConstraintSet] });
+      // 라벨 FOV·크기 재계산 트리거 (state)
+      setPinchScale(newZoom);
+
+      // 카메라 하드웨어 줌 (기기가 지원할 때만)
+      const track = trackRef.current;
+      if (track) {
+        type ZoomCaps = MediaTrackCapabilities & { zoom?: { min: number; max: number } };
+        const caps = track.getCapabilities() as ZoomCaps;
+        if (caps.zoom) {
+          const clamped = Math.min(caps.zoom.max, Math.max(caps.zoom.min, newZoom));
+          track.applyConstraints({ advanced: [{ zoom: clamped } as MediaTrackConstraintSet] });
+        }
+      }
     };
 
     const onTouchEnd = () => { pinchRef.current = null; };
@@ -427,10 +444,11 @@ export default function ArPage() {
     };
   }, [phase]);
 
-  // 언마운트 시 스트림 정리
+  // 언마운트 시 스트림 + iOS 나침반 리스너 정리
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      iosCompassCleanup.current?.();
     };
   }, []);
 
@@ -546,7 +564,11 @@ export default function ArPage() {
 
   // AR 화면
   return (
-    <div ref={arContainerRef} className="fixed inset-0 bg-black overflow-hidden" style={{ touchAction: "none" }}>
+    <div
+      ref={arContainerRef}
+      className="fixed inset-0 bg-black overflow-hidden"
+      style={{ touchAction: /iPad|iPhone|iPod/.test(navigator.userAgent) ? "auto" : "none" }}
+    >
       {/* 카메라 */}
       <video
         ref={videoRef}
