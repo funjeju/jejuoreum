@@ -596,21 +596,21 @@ function ArLabel({
     >
       <div
         className={cn(
-          "px-2.5 py-1.5 rounded-xl text-white text-xs font-semibold shadow-lg backdrop-blur-sm",
+          "px-3.5 py-2 rounded-xl text-white text-sm font-semibold shadow-lg backdrop-blur-sm",
           isDiscovered ? "ring-2 ring-white/60" : ""
         )}
         style={{ backgroundColor: cfg.color + (isTop100 && !isDiscovered ? "cc" : "e6") }}
       >
-        <div className="flex items-center gap-1">
-          {isDiscovered && <Check size={9} className="shrink-0" />}
-          <span className="leading-tight max-w-[100px] truncate">{obj.name}</span>
+        <div className="flex items-center gap-1.5">
+          {isDiscovered && <Check size={11} className="shrink-0" />}
+          <span className="leading-tight max-w-[120px] truncate">{obj.name}</span>
         </div>
-        <p className="text-[9px] text-white/70 mt-0.5">
+        <p className="text-xs text-white/70 mt-0.5">
           {formatDist(obj.distM)} · {bearingLabel(obj.bearingDeg)}
         </p>
       </div>
       <div
-        className="w-0.5 h-3 rounded-full opacity-60"
+        className="w-0.5 h-4 rounded-full opacity-60"
         style={{ backgroundColor: cfg.color }}
       />
     </button>

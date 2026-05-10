@@ -55,11 +55,11 @@ export function screenY(
 }
 
 export function labelScale(distM: number): number {
-  if (distM < 500) return 1.0;
-  if (distM < 1000) return 0.9;
-  if (distM < 3000) return 0.75;
-  if (distM < 10000) return 0.6;
-  return 0.5;
+  if (distM < 500)   return 1.2;
+  if (distM < 1000)  return 1.1;
+  if (distM < 3000)  return 1.0;
+  if (distM < 10000) return 0.85;
+  return 0.75;
 }
 
 export function bearingLabel(deg: number): string {
