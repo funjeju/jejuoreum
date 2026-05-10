@@ -71,6 +71,11 @@ export default function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // admin은 locale prefix 없이 직접 접근
+  if (pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
+
   // i18n routing for all other paths
   return intlMiddleware(req);
 }
