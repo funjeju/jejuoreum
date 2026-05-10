@@ -95,38 +95,8 @@ export default function ArPage() {
       });
     }
 
-    // ── 카메라 권한 사전 확인 (Permissions API 지원 시) ──────
-    if (navigator.permissions) {
-      try {
-        const camStatus = await navigator.permissions.query({ name: "camera" as PermissionName });
-        if (camStatus.state === "denied") {
-          if (device === "ios") {
-            throwErr({
-              title: "카메라 권한이 차단되어 있어요",
-              desc: "이전에 거부한 권한을 iPhone 설정에서 다시 허용해야 해요.",
-              steps: [
-                "iPhone 설정 앱 열기",
-                "아래로 스크롤 → Safari 선택",
-                "카메라 → '허용'으로 변경",
-                "이 페이지로 돌아와 다시 시도",
-              ],
-            });
-          } else if (device === "android") {
-            throwErr({
-              title: "카메라 권한이 차단되어 있어요",
-              desc: "이전에 거부한 권한을 Chrome 설정에서 다시 허용해야 해요.",
-              steps: [
-                "주소창 왼쪽 🔒 아이콘 탭",
-                "'권한' 선택",
-                "카메라 → '허용'으로 변경",
-                "페이지 새로고침 후 다시 시도",
-              ],
-            });
-          }
-        }
-      } catch { /* Permissions API 미지원 시 무시 */ }
-    }
-
+    // ── getUserMedia는 반드시 첫 번째 await이어야 함 ──────────
+    // (Android Chrome: 이전 await이 있으면 user gesture context 소멸 → 팝업 없이 자동 거부)
     try {
       // ① 카메라 권한을 가장 먼저 요청 (iOS는 user gesture context가 await마다 약해짐)
       let stream!: MediaStream;

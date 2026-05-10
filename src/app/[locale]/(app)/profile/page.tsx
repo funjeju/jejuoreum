@@ -99,7 +99,7 @@ export default function ProfilePage() {
       <Header title={t("title")} />
 
       {/* 프로필 헤더 — 애정 오름 일러스트 배경 */}
-      <div className="relative bg-header px-5 pt-6 pb-10 overflow-hidden">
+      <div className="relative bg-header px-5 pt-6 pb-16 overflow-hidden">
         {/* 일러스트 배경 (3개 타일) */}
         {favoriteOreums.length > 0 && (
           <div className="absolute inset-0 flex pointer-events-none">
@@ -158,7 +158,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 -mt-4 space-y-3">
+      <div className="max-w-lg mx-auto px-4 -mt-10 space-y-3">
 
         {/* 통계 카드 */}
         {!loading && (
