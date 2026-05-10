@@ -33,11 +33,12 @@ export function screenX(
   userHeading: number,
   fov: number,
   screenWidth: number,
+  margin = 10,
 ): number | null {
   let rel = objBearing - userHeading;
   if (rel > 180) rel -= 360;
   if (rel < -180) rel += 360;
-  if (Math.abs(rel) > fov / 2) return null;
+  if (Math.abs(rel) > fov / 2 + margin) return null;
   return ((rel / fov) + 0.5) * screenWidth;
 }
 

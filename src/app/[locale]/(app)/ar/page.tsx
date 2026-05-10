@@ -66,11 +66,31 @@ export default function ArPage() {
   const [heading, setHeading]       = useState(0);
   const [compassAvail, setCompassAvail] = useState(true);
 
-  // 나침반 수신
+  // 나침반 수신 (low-pass filter + iOS webkitCompassHeading 지원)
   useEffect(() => {
-    const handler = (e: DeviceOrientationEvent) => {
-      if (e.alpha !== null) setHeading(360 - e.alpha);
+    let smoothed: number | null = null;
+    const ALPHA = 0.15;
+
+    const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+      let raw: number | null = null;
+      if (typeof e.webkitCompassHeading === "number") {
+        raw = e.webkitCompassHeading;           // iOS: 진북 기준, 직접 제공
+      } else if (e.alpha !== null) {
+        raw = (360 - e.alpha) % 360;            // Android
+      }
+      if (raw === null) return;
+
+      if (smoothed === null) {
+        smoothed = raw;
+      } else {
+        let diff = raw - smoothed;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        smoothed = (smoothed + ALPHA * diff + 360) % 360;
+      }
+      setHeading(smoothed);
     };
+
     window.addEventListener("deviceorientationabsolute" as "deviceorientation", handler);
     window.addEventListener("deviceorientation", handler);
     return () => {
