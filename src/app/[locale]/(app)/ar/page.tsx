@@ -52,8 +52,12 @@ export default function ArPage() {
   const locale   = useLocale();
   const { user } = useAuth();
 
-  const videoRef   = useRef<HTMLVideoElement>(null);
-  const streamRef  = useRef<MediaStream | null>(null);
+  const videoRef      = useRef<HTMLVideoElement>(null);
+  const streamRef     = useRef<MediaStream | null>(null);
+  const trackRef      = useRef<MediaStreamTrack | null>(null);
+  const arContainerRef = useRef<HTMLDivElement>(null);
+  const pinchRef      = useRef<number | null>(null);
+  const zoomRef       = useRef(1);
 
   const [phase, setPhase]       = useState<"safety" | "loading" | "ready" | "error">("safety");
   const [arError, setArError]   = useState<ArError | null>(null);
@@ -65,12 +69,18 @@ export default function ArPage() {
   const [userPos, setUserPos]       = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const [heading, setHeading]       = useState(0);
   const [compassAvail, setCompassAvail] = useState(true);
-  const [radius, setRadius] = useState(10);
+  const [compassReady, setCompassReady] = useState(false);
+  const [radius, setRadius] = useState(15);
 
   // 나침반 수신 (low-pass filter + iOS webkitCompassHeading + 이벤트 중복 방지)
+  // iOS: requestPermission() 성공 후에야 이벤트 수신 → compassReady=true 시 재등록
   useEffect(() => {
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // iOS면 권한 허가(compassReady=true) 전까지 등록 스킵
+    if (isIos && !compassReady) return;
+
     let smoothed: number | null = null;
-    const ALPHA = 0.06; // 작을수록 부드러움 (0.15 → 0.06)
+    const ALPHA = 0.06;
 
     const handler = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
       let raw: number | null = null;
@@ -101,7 +111,7 @@ export default function ArPage() {
       : "deviceorientation" as const;
     w.addEventListener(evtName, handler as EventListener);
     return () => w.removeEventListener(evtName, handler as EventListener);
-  }, []);
+  }, [compassReady]);
 
   const fetchArObjects = useCallback(async (pos: { lat: number; lng: number }, r: number) => {
     const params = new URLSearchParams({ lat: String(pos.lat), lng: String(pos.lng), radius: String(r) });
@@ -219,12 +229,14 @@ export default function ArPage() {
       }
 
       streamRef.current = stream;
+      trackRef.current = stream.getVideoTracks()[0] ?? null;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         try { await videoRef.current.play(); } catch { /* autoplay 정책 허용 */ }
       }
 
       // ② iOS 13+ 나침반 권한 (카메라 다음으로 요청)
+      // 권한 허가 후 setCompassReady(true) → 나침반 useEffect가 리스너를 등록
       if (
         typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> })
           .requestPermission === "function"
@@ -233,7 +245,11 @@ export default function ArPage() {
           const perm = await (
             DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }
           ).requestPermission();
-          if (perm !== "granted") setCompassAvail(false);
+          if (perm === "granted") {
+            setCompassReady(true);
+          } else {
+            setCompassAvail(false);
+          }
         } catch {
           setCompassAvail(false);
         }
@@ -365,6 +381,52 @@ export default function ArPage() {
     setVisible(next.slice(0, 20)); // 최대 20개
   }, [heading, objects, phase, userPos, layers]);
 
+  // 핀치 줌 (Android Chrome: native 동작 없음 → applyConstraints로 직접 처리)
+  useEffect(() => {
+    if (phase !== "ready") return;
+    const el = arContainerRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchRef.current = Math.hypot(dx, dy);
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || pinchRef.current === null) return;
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / pinchRef.current;
+      pinchRef.current = dist;
+
+      const track = trackRef.current;
+      if (!track) return;
+      type ZoomCaps = MediaTrackCapabilities & { zoom?: { min: number; max: number } };
+      const caps = track.getCapabilities() as ZoomCaps;
+      if (!caps.zoom) return;
+
+      const next = Math.min(caps.zoom.max, Math.max(caps.zoom.min, zoomRef.current * ratio));
+      zoomRef.current = next;
+      track.applyConstraints({ advanced: [{ zoom: next } as MediaTrackConstraintSet] });
+    };
+
+    const onTouchEnd = () => { pinchRef.current = null; };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove",  onTouchMove,  { passive: false });
+    el.addEventListener("touchend",   onTouchEnd,   { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove",  onTouchMove);
+      el.removeEventListener("touchend",   onTouchEnd);
+    };
+  }, [phase]);
+
   // 언마운트 시 스트림 정리
   useEffect(() => {
     return () => {
@@ -484,7 +546,7 @@ export default function ArPage() {
 
   // AR 화면
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
+    <div ref={arContainerRef} className="fixed inset-0 bg-black overflow-hidden" style={{ touchAction: "none" }}>
       {/* 카메라 */}
       <video
         ref={videoRef}
@@ -553,7 +615,7 @@ export default function ArPage() {
           <div className="mt-2 pt-2 border-t border-white/20">
             <p className="text-white/50 text-[10px] px-2 mb-1.5">반경</p>
             <div className="flex gap-1 px-2">
-              {[5, 10, 15].map((r) => (
+              {[5, 15, 25].map((r) => (
                 <button
                   key={r}
                   onClick={() => setRadius(r)}

@@ -5,7 +5,7 @@ import type { ArObject } from "@/types/ar";
 
 // radius 파라미터: 1~25km, 기본 10km
 function getMaxDistKm(searchParams: URLSearchParams): number {
-  return Math.min(25, Math.max(1, parseFloat(searchParams.get("radius") ?? "10")));
+  return Math.min(25, Math.max(1, parseFloat(searchParams.get("radius") ?? "15")));
 }
 
 function distKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
