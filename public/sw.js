@@ -1,4 +1,4 @@
-const CACHE_NAME = "jejuoreum-v2";
+const CACHE_NAME = "jejuoreum-v3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -49,13 +49,16 @@ self.addEventListener("fetch", (event) => {
   // Only handle http/https requests
   if (!url.startsWith("http")) return;
 
-  // Network-only for API, admin, auth routes
+  // Network-only: API, admin, auth routes
   if (url.includes("/api/") || url.includes("/admin") || url.includes("/auth/")) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Network-first for everything else
+  // Network-only: HTML navigation (브라우저가 직접 처리 → 최신 헤더 보장)
+  if (event.request.mode === "navigate") return;
+
+  // Network-first for static assets (JS, CSS, images, fonts …)
   event.respondWith(
     fetch(event.request)
       .then((res) => {
@@ -65,6 +68,13 @@ self.addEventListener("fetch", (event) => {
         }
         return res;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        caches.match(event.request).then(
+          (cached) => cached ?? new Response("오프라인 상태입니다.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          })
+        )
+      )
   );
 });
