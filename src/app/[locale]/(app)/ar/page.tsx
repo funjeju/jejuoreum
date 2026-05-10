@@ -240,31 +240,8 @@ export default function ArPage() {
         try { await videoRef.current.play(); } catch { /* autoplay 정책 허용 */ }
       }
 
-      // ② iOS 13+ 나침반 권한 (카메라 다음으로 요청)
-      // granted 직후 동기적으로 리스너 등록 — React re-render 사이클을 거치면 iOS가 이벤트를 안 줌
-      if (
-        typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> })
-          .requestPermission === "function"
-      ) {
-        try {
-          const perm = await (
-            DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }
-          ).requestPermission();
-          if (perm === "granted") {
-            const handler = compassHandlerRef.current;
-            if (handler) {
-              window.addEventListener("deviceorientation", handler);
-              iosCompassCleanup.current = () => window.removeEventListener("deviceorientation", handler);
-            }
-          } else {
-            setCompassAvail(false);
-          }
-        } catch {
-          setCompassAvail(false);
-        }
-      }
-
-      // ③ GPS (나침반 이후)
+      // ② GPS
+      // iOS 나침반은 "AR 시작" 버튼 onClick에서 직접 처리 (gesture context 보장)
       let pos!: GeolocationPosition;
       try {
         pos = await new Promise<GeolocationPosition>((resolve, reject) =>
@@ -475,7 +452,28 @@ export default function ArPage() {
             </ul>
           </div>
           <button
-            onClick={startAr}
+            onClick={async () => {
+              // iOS: orientation permission을 getUserMedia보다 먼저, 직접 click 핸들러에서 요청
+              // (await가 없는 상태에서 호출해야 iOS gesture context 유지됨)
+              type DOEWithPerm = typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> };
+              if (typeof (DeviceOrientationEvent as DOEWithPerm).requestPermission === "function") {
+                try {
+                  const perm = await (DeviceOrientationEvent as DOEWithPerm).requestPermission!();
+                  if (perm === "granted") {
+                    const handler = compassHandlerRef.current;
+                    if (handler) {
+                      window.addEventListener("deviceorientation", handler);
+                      iosCompassCleanup.current = () => window.removeEventListener("deviceorientation", handler);
+                    }
+                  } else {
+                    setCompassAvail(false);
+                  }
+                } catch {
+                  setCompassAvail(false);
+                }
+              }
+              startAr();
+            }}
             className="w-full py-3.5 rounded-2xl bg-primary text-white font-semibold"
           >
             알겠습니다 — AR 시작
@@ -601,7 +599,13 @@ export default function ArPage() {
           <X size={18} className="text-white" />
         </button>
 
-        <span className="text-white font-semibold text-sm drop-shadow">AR 둘러보기</span>
+        <span className="text-white font-semibold text-sm drop-shadow">
+          AR 둘러보기
+          {compassAvail
+            ? <span className="ml-1.5 text-white/50 text-xs font-normal">{Math.round(heading)}°</span>
+            : <span className="ml-1.5 text-red-400 text-xs font-normal">나침반OFF</span>
+          }
+        </span>
 
         <button
           onClick={() => setShowLayers((v) => !v)}
@@ -669,6 +673,19 @@ export default function ArPage() {
           </span>
         </div>
       </div>
+
+      {/* 나침반 꺼짐 배너 (iOS 권한 거부 / 캐시된 거부) */}
+      {!compassAvail && /iPad|iPhone|iPod/.test(navigator.userAgent) && (
+        <div className="absolute top-16 left-0 right-0 mx-4 mt-2 bg-black/80 backdrop-blur rounded-2xl p-3.5 z-10">
+          <p className="text-white text-xs font-semibold mb-1">나침반 권한이 꺼져 있어요</p>
+          <p className="text-white/60 text-[11px] leading-relaxed">
+            Safari 설정에서 권한을 초기화하면 다시 요청할 수 있어요.
+          </p>
+          <p className="text-white/50 text-[11px] mt-1.5 leading-relaxed">
+            iOS 설정 → Safari → 방문 기록 및 웹 사이트 데이터 지우기
+          </p>
+        </div>
+      )}
 
       {/* 선택된 객체 상세 패널 */}
       {selected && (
