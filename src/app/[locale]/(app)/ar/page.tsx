@@ -29,11 +29,13 @@ const DEFAULT_LAYERS: Record<Layer, boolean> = {
   oreum: true, mountain: true, sea_landmark: false, merchant: false,
 };
 
-// 기기/브라우저 판별
-function detectDevice(): "ios" | "android" | "other" {
+// 기기/브라우저 판별 (CriOS = iPhone의 Chrome)
+function detectDevice(): "ios_safari" | "ios_chrome" | "android" | "other" {
   if (typeof navigator === "undefined") return "other";
   const ua = navigator.userAgent;
-  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
+  if (/iPad|iPhone|iPod/.test(ua)) {
+    return /CriOS/.test(ua) ? "ios_chrome" : "ios_safari";
+  }
   if (/Android/.test(ua)) return "android";
   return "other";
 }
@@ -89,8 +91,10 @@ export default function ArPage() {
     if (!navigator.mediaDevices?.getUserMedia) {
       throwErr({
         title: "이 브라우저는 카메라를 지원하지 않아요",
-        desc: device === "ios"
+        desc: device === "ios_safari"
           ? "iOS Safari 최신 버전을 사용해주세요."
+          : device === "ios_chrome"
+          ? "iPhone Chrome을 최신 버전으로 업데이트해주세요."
           : "Chrome 최신 버전으로 업데이트 후 다시 시도해주세요.",
         steps: [],
       });
@@ -99,7 +103,7 @@ export default function ArPage() {
     // ── getUserMedia는 반드시 첫 번째 await이어야 함 ──────────
     // (Android Chrome: 이전 await이 있으면 user gesture context 소멸 → 팝업 없이 자동 거부)
     try {
-      // ① 카메라 권한을 가장 먼저 요청 (iOS는 user gesture context가 await마다 약해짐)
+      // ① 카메라 권한을 가장 먼저 요청
       let stream!: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -107,12 +111,23 @@ export default function ArPage() {
           audio: false,
         });
       } catch (err) {
+        // Permissions API로 실제 권한 상태 확인 (가능한 경우)
+        let camState: PermissionState | null = null;
+        try {
+          const r = await navigator.permissions.query({ name: "camera" as PermissionName });
+          camState = r.state;
+        } catch { /* 지원 안 하는 브라우저는 무시 */ }
         const e = err as DOMException;
-        if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError") {
-          if (device === "ios") {
+        const e2 = err as DOMException;
+        if (e2.name === "NotAllowedError" || e2.name === "PermissionDeniedError") {
+          // camState === "prompt" → 권한 창이 떴어야 하는데 즉시 거부 → 서버 정책이 막은 것
+          const blockedByPolicy = camState === "prompt";
+          if (device === "ios_safari") {
             throwErr({
               title: "카메라 권한이 필요해요",
-              desc: "iPhone Safari에서 카메라 권한을 허용해주세요.",
+              desc: blockedByPolicy
+                ? "카메라 권한 팝업이 뜨지 않았다면 Safari 설정을 확인해주세요."
+                : "iPhone 설정에서 Safari 카메라 권한을 허용해주세요.",
               steps: [
                 "iPhone 설정 앱 열기",
                 "아래로 스크롤 → Safari 선택",
@@ -120,14 +135,29 @@ export default function ArPage() {
                 "이 페이지로 돌아와 다시 시도",
               ],
             });
+          } else if (device === "ios_chrome") {
+            throwErr({
+              title: "카메라 권한이 필요해요",
+              desc: blockedByPolicy
+                ? "카메라 권한 팝업이 뜨지 않았다면 Chrome 앱 설정을 확인해주세요."
+                : "iPhone 설정에서 Chrome 카메라 권한을 허용해주세요.",
+              steps: [
+                "iPhone 설정 앱 열기",
+                "아래로 스크롤 → Chrome 선택",
+                "카메라 → '허용'으로 변경",
+                "Chrome으로 돌아와 다시 시도",
+              ],
+            });
           } else if (device === "android") {
             throwErr({
               title: "카메라 권한이 필요해요",
-              desc: "Chrome이 카메라에 접근할 수 없어요. 아래 순서대로 확인해주세요.",
+              desc: blockedByPolicy
+                ? "권한 팝업이 뜨지 않았어요. Chrome 앱 권한을 먼저 확인해주세요."
+                : "Chrome에서 카메라 권한을 허용해주세요.",
               steps: [
                 "Android 설정 → 앱 → Chrome → 권한 → 카메라 → '허용'",
                 "Chrome으로 돌아와 이 페이지 새로고침",
-                "AR 다시 시작 — 카메라 허용 팝업이 뜨면 허용",
+                "AR 다시 시작 → 카메라 허용 팝업이 뜨면 허용",
               ],
             });
           } else {
@@ -138,7 +168,7 @@ export default function ArPage() {
             });
           }
         }
-        if (e.name === "NotFoundError" || e.name === "DevicesNotFoundError") {
+        if (e2.name === "NotFoundError" || e2.name === "DevicesNotFoundError") {
           throwErr({
             title: "카메라를 찾을 수 없어요",
             desc: "이 기기에서 후면 카메라를 인식하지 못했어요.",
@@ -147,7 +177,7 @@ export default function ArPage() {
         }
         throwErr({
           title: "카메라를 시작할 수 없어요",
-          desc: e.message,
+          desc: e2.message,
           steps: ["브라우저를 재시작하고 다시 시도해주세요."],
         });
       }
@@ -185,16 +215,28 @@ export default function ArPage() {
       } catch (err) {
         const e = err as GeolocationPositionError;
         if (e.code === 1 /* PERMISSION_DENIED */) {
-          if (device === "ios") {
+          if (device === "ios_safari") {
             throwErr({
               title: "위치 권한이 필요해요",
-              desc: "카메라는 허용됐어요. 이제 위치 권한도 설정해주세요.",
+              desc: "카메라는 허용됐어요. 위치 권한도 설정해주세요.",
               cameraGranted: true,
               steps: [
                 "iPhone 설정 앱 열기",
                 "개인 정보 보호 및 보안 → 위치 서비스",
                 "아래로 스크롤 → Safari → '앱 사용 중' 선택",
                 "이 페이지로 돌아와 다시 시도",
+              ],
+            });
+          } else if (device === "ios_chrome") {
+            throwErr({
+              title: "위치 권한이 필요해요",
+              desc: "카메라는 허용됐어요. 위치 권한도 설정해주세요.",
+              cameraGranted: true,
+              steps: [
+                "iPhone 설정 앱 열기",
+                "아래로 스크롤 → Chrome 선택",
+                "위치 → '앱 사용 중' 선택",
+                "Chrome으로 돌아와 다시 시도",
               ],
             });
           } else if (device === "android") {
