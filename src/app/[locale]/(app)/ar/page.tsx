@@ -92,13 +92,13 @@ export default function ArPage() {
     };
 
     // Android: deviceorientationabsolute가 있으면 그것만 등록 (중복 방지)
-    if ("ondeviceorientationabsolute" in window) {
-      window.addEventListener("deviceorientationabsolute" as "deviceorientation", handler);
-      return () => window.removeEventListener("deviceorientationabsolute" as "deviceorientation", handler);
-    } else {
-      window.addEventListener("deviceorientation", handler);
-      return () => window.removeEventListener("deviceorientation", handler);
-    }
+    const w = window as Window;
+    const useAbsolute = "ondeviceorientationabsolute" in window;
+    const evtName = useAbsolute
+      ? "deviceorientationabsolute" as "deviceorientation"
+      : "deviceorientation" as const;
+    w.addEventListener(evtName, handler as EventListener);
+    return () => w.removeEventListener(evtName, handler as EventListener);
   }, []);
 
   const startAr = useCallback(async () => {
