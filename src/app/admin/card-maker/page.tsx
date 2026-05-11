@@ -106,7 +106,7 @@ function drawCard(
 export default function CardMakerPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const oreumIdParam = searchParams.get("oreumId");
+  const oreumIdParam = searchParams?.get("oreumId") ?? null;
 
   const [step, setStep]             = useState<1 | 2 | 3 | 4>(1);
   const [oreums, setOreums]         = useState<Oreum[]>([]);
