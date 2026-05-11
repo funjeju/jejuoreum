@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Upload, Sparkles, Download, Save, ChevronRight, Loader2, X, RefreshCw, ImageIcon, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -104,6 +105,8 @@ function drawCard(
 // ── 메인 페이지 ──────────────────────────────────────────────
 export default function CardMakerPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const oreumIdParam = searchParams.get("oreumId");
 
   const [step, setStep]             = useState<1 | 2 | 3 | 4>(1);
   const [oreums, setOreums]         = useState<Oreum[]>([]);
@@ -138,6 +141,13 @@ export default function CardMakerPage() {
         .catch(() => {})
     );
   }, [user]);
+
+  // URL param으로 오름 자동선택
+  useEffect(() => {
+    if (!oreumIdParam || oreums.length === 0) return;
+    const found = oreums.find((o) => o.id === oreumIdParam);
+    if (found) { setSelected(found); setStep(2); }
+  }, [oreums, oreumIdParam]);
 
   // 오름 선택 시 텍스트 자동 채우기
   useEffect(() => {

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import {
   Upload, Search, ChevronLeft, ChevronRight,
-  Pencil, Eye, EyeOff, FileSpreadsheet, CheckCircle2, X, AlertCircle, ShieldAlert, ImagePlus,
+  Pencil, Eye, EyeOff, FileSpreadsheet, CheckCircle2, X, AlertCircle, ShieldAlert, ImagePlus, LayoutTemplate,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -392,6 +392,12 @@ export default function AdminOreumsClient() {
                         >
                           {o.isPublished ? <><EyeOff size={12} className="mr-1" />미발행</> : <><Eye size={12} className="mr-1" />발행</>}
                         </Button>
+                        <Link href={`/admin/card-maker?oreumId=${o.id}`}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-violet-600 hover:text-violet-700">
+                            <LayoutTemplate size={12} className="mr-1" />
+                            {o.thumbnailUrl ? "카드수정" : "카드만들기"}
+                          </Button>
+                        </Link>
                       </div>
                     </td>
                   </tr>
