@@ -46,16 +46,22 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(base64Data, "base64");
   const imageFile = await toFile(buffer, "oreum.png", { type: "image/png" });
 
-  const response = await openai.images.edit({
-    model: "gpt-image-1",
-    image: imageFile,
-    prompt,
-    n: 1,
-    size: "1024x1024",
-  });
+  try {
+    const response = await openai.images.edit({
+      model: "gpt-image-1",
+      image: imageFile,
+      prompt,
+      n: 1,
+      size: "1024x1024",
+    });
 
-  const b64 = response.data?.[0]?.b64_json;
-  if (!b64) return NextResponse.json({ error: "No image returned" }, { status: 500 });
+    const b64 = response.data?.[0]?.b64_json;
+    if (!b64) return NextResponse.json({ error: "No image returned" }, { status: 500 });
 
-  return NextResponse.json({ imageBase64: `data:image/png;base64,${b64}` });
+    return NextResponse.json({ imageBase64: `data:image/png;base64,${b64}` });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[card/generate]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
