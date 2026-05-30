@@ -97,19 +97,35 @@ export default function MapClient() {
 
   // kakao.maps 준비될 때까지 polling 후 초기화
   useEffect(() => {
+    console.log("[KakaoMap] polling 시작");
     let tries = 0;
     const timer = setInterval(() => {
       tries++;
-      if (window.kakao?.maps && mapRef.current && !mapInstanceRef.current) {
-        clearInterval(timer);
-        const map = new window.kakao.maps.Map(mapRef.current, {
-          center: new window.kakao.maps.LatLng(33.38, 126.55),
-          level: 10,
-        });
-        mapInstanceRef.current = map;
-        setMapReady(true);
+      const hasKakao = !!window.kakao;
+      const hasMaps  = !!window.kakao?.maps;
+      const hasRef   = !!mapRef.current;
+      if (tries % 10 === 1) {
+        console.log(`[KakaoMap] try ${tries} | kakao=${hasKakao} maps=${hasMaps} ref=${hasRef}`);
       }
-      if (tries > 100) clearInterval(timer); // 10초 타임아웃
+      if (hasMaps && hasRef && !mapInstanceRef.current) {
+        clearInterval(timer);
+        console.log("[KakaoMap] 초기화 시작");
+        try {
+          const map = new window.kakao.maps.Map(mapRef.current!, {
+            center: new window.kakao.maps.LatLng(33.38, 126.55),
+            level: 10,
+          });
+          mapInstanceRef.current = map;
+          setMapReady(true);
+          console.log("[KakaoMap] 초기화 완료");
+        } catch (e) {
+          console.error("[KakaoMap] 초기화 에러:", e);
+        }
+      }
+      if (tries > 100) {
+        clearInterval(timer);
+        console.warn("[KakaoMap] 타임아웃 — kakao.maps 로드 실패");
+      }
     }, 100);
     return () => clearInterval(timer);
   }, []);
