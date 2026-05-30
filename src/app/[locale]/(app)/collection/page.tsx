@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { CheckCircle2, SlidersHorizontal } from "lucide-react";
+import { CheckCircle2, SlidersHorizontal, Map } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getOreumCards } from "@/lib/firestore/oreums";
 import { getUserDiscoveries } from "@/lib/firestore/users";
@@ -15,10 +15,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { OreumCard, UserDiscovery, Region } from "@/types";
+import type { OreumCard, UserDiscovery, Region, OreumLevel } from "@/types";
 
-type SortKey = "order" | "name" | "discovered";
+type SortKey = "order" | "name" | "discovered" | "level";
 type DiscFilter = "all" | "discovered" | "undiscovered";
+
+const LEVEL_ORDER: Record<OreumLevel, number> = { entry: 0, novice: 1, intermediate: 2, advanced: 3 };
+const LEVEL_LABEL: Record<OreumLevel, string> = { entry: "🌱 입문자", novice: "🥾 초보자", intermediate: "⛰️ 중급자", advanced: "🏔️ 숙련자" };
 
 const REGIONS: { key: "all" | Region; label: string }[] = [
   { key: "all",     label: "전체" },
@@ -33,6 +36,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "order",     label: "번호순" },
   { key: "discovered", label: "발견순" },
   { key: "name",      label: "이름순" },
+  { key: "level",     label: "난이도순" },
 ];
 
 export default function CollectionPage() {
@@ -45,6 +49,7 @@ export default function CollectionPage() {
   const [discoveries, setDiscoveries]   = useState<UserDiscovery[]>([]);
   const [loading, setLoading]           = useState(true);
   const [regionFilter, setRegionFilter] = useState<"all" | Region>("all");
+  const [levelFilter, setLevelFilter]   = useState<"all" | OreumLevel>("all");
   const [sortBy, setSortBy]             = useState<SortKey>("order");
   const [discFilter, setDiscFilter]     = useState<DiscFilter>("all");
 
@@ -65,13 +70,17 @@ export default function CollectionPage() {
   const applyFilters = useMemo(() => (base: OreumCard[]) => {
     let result = base;
     if (regionFilter !== "all") result = result.filter((o) => o.region === regionFilter);
+    if (levelFilter  !== "all") result = result.filter((o) => o.recommendedLevel === levelFilter);
     if (discFilter === "discovered")   result = result.filter((o) => discSet.has(o.slug));
     if (discFilter === "undiscovered") result = result.filter((o) => !discSet.has(o.slug));
-    if (sortBy === "name")      result = [...result].sort((a, b) => a.nameKo.localeCompare(b.nameKo, "ko"));
-    if (sortBy === "order")     result = [...result].sort((a, b) => (a.tierOrder ?? 999) - (b.tierOrder ?? 999));
+    if (sortBy === "name")       result = [...result].sort((a, b) => a.nameKo.localeCompare(b.nameKo, "ko"));
+    if (sortBy === "order")      result = [...result].sort((a, b) => (a.tierOrder ?? 999) - (b.tierOrder ?? 999));
     if (sortBy === "discovered") result = [...result].sort((a, b) => (discSet.has(a.slug) ? 0 : 1) - (discSet.has(b.slug) ? 0 : 1));
+    if (sortBy === "level")      result = [...result].sort((a, b) =>
+      (LEVEL_ORDER[a.recommendedLevel ?? "advanced"] ?? 99) - (LEVEL_ORDER[b.recommendedLevel ?? "advanced"] ?? 99)
+    );
     return result;
-  }, [regionFilter, discFilter, sortBy, discSet]);
+  }, [regionFilter, levelFilter, discFilter, sortBy, discSet]);
 
   const byTier = useMemo(() => ({
     beginner: oreums.filter((o) => o.tier === "beginner" || o.tier === null),
@@ -94,6 +103,13 @@ export default function CollectionPage() {
       <div className="bg-header px-4 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
           <CollectionStatsCard discovered={totalDiscovered} total={100} thisMonthDisc={thisMonthDisc} />
+          <Link
+            href={`/${locale}/map`}
+            className="mt-3 flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-semibold hover:bg-white/20 transition-colors"
+          >
+            <Map size={13} />
+            지도로 보기
+          </Link>
         </div>
       </div>
 
@@ -144,6 +160,35 @@ export default function CollectionPage() {
                   "shrink-0 h-8 px-3 rounded-full text-xs font-semibold transition-colors",
                   regionFilter === key
                     ? "bg-primary text-white"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70 border border-border"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* 난이도 필터 칩 */}
+          <div className="flex gap-2 mt-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            <button
+              onClick={() => setLevelFilter("all")}
+              className={cn(
+                "shrink-0 h-7 px-3 rounded-full text-[11px] font-semibold transition-colors",
+                levelFilter === "all"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70 border border-border"
+              )}
+            >
+              전체 난이도
+            </button>
+            {(Object.entries(LEVEL_LABEL) as [OreumLevel, string][]).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setLevelFilter(key)}
+                className={cn(
+                  "shrink-0 h-7 px-3 rounded-full text-[11px] font-semibold transition-colors",
+                  levelFilter === key
+                    ? "bg-emerald-600 text-white"
                     : "bg-muted text-muted-foreground hover:bg-muted/70 border border-border"
                 )}
               >

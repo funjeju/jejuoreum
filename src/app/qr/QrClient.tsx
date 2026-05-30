@@ -12,7 +12,7 @@ import { getNearbyOreums } from "@/lib/firestore/oreums";
 import { saveDiscovery, getDiscovery } from "@/lib/firestore/users";
 import { createDiscoveryFeedEvent } from "@/lib/firestore/feed";
 import { evaluateAndAwardBadges } from "@/lib/firestore/badges";
-import { getUserChallenges, updateChallengeProgress } from "@/lib/firestore/challenges";
+import { getUserChallenges, updateChallengeProgress, awardChallengeBadge } from "@/lib/firestore/challenges";
 import { DiscoveryMomentAnimation } from "@/components/discovery/DiscoveryMomentAnimation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -153,7 +153,16 @@ export default function QrClient() {
           if (ch.isCompleted) continue;
           const discCount = allDiscs.length;
           if (discCount > ch.progress) {
-            updateChallengeProgress(user.uid, ch.id, discCount, ch.goal).catch(() => {});
+            const wasNewlyCompleted = await updateChallengeProgress(
+              user.uid, ch.id, ch.challengeId, discCount, ch.goal
+            ).catch(() => false);
+            if (wasNewlyCompleted) {
+              const badgeName = await awardChallengeBadge(user.uid, ch).catch(() => null);
+              if (badgeName) {
+                setNewBadges((prev) => [...prev, `🏆 ${badgeName}`]);
+                localStorage.setItem("badge_notification", "1");
+              }
+            }
           }
         }
       }).catch(() => {});

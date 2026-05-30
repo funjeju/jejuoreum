@@ -13,8 +13,8 @@ const LEFT = [
 ] as const;
 
 const RIGHT = [
-  { key: "feed", href: "/feed", labelKey: "feed", Icon: Users },
-  { key: "my",   href: "/profile", labelKey: "my",  Icon: User },
+  { key: "feed", href: "/feed",    labelKey: "feed", Icon: Users },
+  { key: "my",   href: "/profile", labelKey: "my",   Icon: User },
 ] as const;
 
 export default function BottomNav() {

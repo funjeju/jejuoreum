@@ -19,6 +19,7 @@ export async function getOreumCards(opts: {
   top100Only?: boolean;
   tier?: Tier;
   region?: Region;
+  level?: import("@/types").OreumLevel;
   limitCount?: number;
 } = {}): Promise<OreumCard[]> {
   // 복합 인덱스 없이 단순 쿼리 후 메모리 필터링
@@ -29,22 +30,25 @@ export async function getOreumCards(opts: {
   let cards = snap.docs.map((d) => {
     const data = d.data();
     return {
-      id:                d.id,
-      slug:              data.slug,
-      nameKo:            data.nameKo,
-      tier:              data.tier ?? null,
-      tierOrder:         data.tierOrder ?? null,
-      region:            data.region,
-      difficulty:        data.difficulty ?? null,
-      thumbnailUrl:      data.thumbnailUrl ?? null,
+      id:               d.id,
+      slug:             data.slug,
+      nameKo:           data.nameKo,
+      tier:             data.tier ?? null,
+      tierOrder:        data.tierOrder ?? null,
+      region:           data.region,
+      difficulty:       data.difficulty ?? null,
+      recommendedLevel: data.recommendedLevel ?? null,
+      thumbnailUrl:     data.thumbnailUrl ?? null,
       emotionalKeywords: data.emotionalKeywords ?? [],
-      isPublished:       data.isPublished,
-    } as OreumCard;
+      isPublished:      data.isPublished,
+      isTop100:         data.isTop100 ?? (data.tier != null),
+    } as OreumCard & { isTop100: boolean };
   });
 
-  if (opts.top100Only) cards = cards.filter((o) => (o as OreumCard & { isTop100?: boolean }).isTop100 !== false);
+  if (opts.top100Only) cards = cards.filter((o) => (o as OreumCard & { isTop100: boolean }).isTop100);
   if (opts.tier)       cards = cards.filter((o) => o.tier === opts.tier);
   if (opts.region)     cards = cards.filter((o) => o.region === opts.region);
+  if (opts.level)      cards = cards.filter((o) => o.recommendedLevel === opts.level);
 
   cards.sort((a, b) => (a.tierOrder ?? 99999) - (b.tierOrder ?? 99999));
 

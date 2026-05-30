@@ -180,6 +180,7 @@ export async function adminBulkUpsertOreums(rows: CsvOreumRow[]): Promise<{ inse
         oneLinerEn: null,
         descriptionKo: null,
         difficulty: row.difficulty ?? null,
+        recommendedLevel: null,
         trailLengthKm: row.trailLengthKm ?? null,
         estimatedMinutes: row.estimatedMinutes ?? null,
         recommendedSeasons: [],

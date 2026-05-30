@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import {
   Upload, Search, ChevronLeft, ChevronRight,
-  Pencil, Eye, EyeOff, FileSpreadsheet, CheckCircle2, X, AlertCircle, ShieldAlert, ImagePlus, LayoutTemplate,
+  Pencil, Eye, EyeOff, FileSpreadsheet, CheckCircle2, X, AlertCircle, ShieldAlert, ImagePlus, LayoutTemplate, Star,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -109,6 +109,16 @@ export default function AdminOreumsClient() {
     } finally {
       setBulkLoading(false);
     }
+  };
+
+  const handleToggleTop100 = async (oreum: Oreum) => {
+    const token = await getToken();
+    await fetch(`/api/admin/oreums/${oreum.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ isTop100: !oreum.isTop100 }),
+    });
+    fetchOreums();
   };
 
   const handleTogglePublish = async (oreum: Oreum) => {
@@ -318,6 +328,7 @@ export default function AdminOreumsClient() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">지역</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">고도</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">상태</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Top100</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">액션</th>
               </tr>
             </thead>
@@ -325,7 +336,7 @@ export default function AdminOreumsClient() {
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 9 }).map((_, j) => (
+                    {Array.from({ length: 10 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
                         <div className="h-4 bg-muted animate-pulse rounded" />
                       </td>
@@ -368,6 +379,12 @@ export default function AdminOreumsClient() {
                       }
                     </td>
                     <td className="px-4 py-3">
+                      {o.isTop100
+                        ? <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-medium"><Star size={14} className="text-amber-500 fill-amber-500" />100선</span>
+                        : <Star size={14} className="text-muted-foreground/30" />
+                      }
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         {o.isPublished && (
                           <Link href={`/ko/oreum/${o.slug}`} target="_blank">
@@ -376,6 +393,15 @@ export default function AdminOreumsClient() {
                             </Button>
                           </Link>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={`h-7 px-2 text-xs ${o.isTop100 ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground hover:text-foreground"}`}
+                          onClick={() => handleToggleTop100(o)}
+                        >
+                          <Star size={12} className={`mr-1 ${o.isTop100 ? "fill-amber-500" : ""}`} />
+                          {o.isTop100 ? "100선" : "일반"}
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"

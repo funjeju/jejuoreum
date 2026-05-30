@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
         tierOrder: data.tierOrder ?? null,
         thumbnailUrl: data.thumbnailUrl ?? null,
         difficulty: data.difficulty ?? null,
+        recommendedLevel: data.recommendedLevel ?? null,
         emotionalKeywords: data.emotionalKeywords ?? [],
         isPublished: true,
         distanceM,

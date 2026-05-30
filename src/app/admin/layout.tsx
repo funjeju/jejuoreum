@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store, Inbox, TrendingUp, Flag, Upload, ShoppingBag, Sparkles, BarChart2, PaintbrushVertical } from "lucide-react";
+import { Mountain, LayoutDashboard, List, LogOut, CheckCircle2, Users, Camera, MessageSquare, FileText, ShieldAlert, Store, Inbox, TrendingUp, Flag, Upload, ShoppingBag, Sparkles, BarChart2, PaintbrushVertical, Layers } from "lucide-react";
 import { auth } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin",                     icon: LayoutDashboard, label: "대시보드" },
   { href: "/admin/oreums",              icon: List,            label: "오름 관리" },
+  { href: "/admin/levels",              icon: Layers,          label: "오름 등급" },
   { href: "/admin/oreums/mbti-mapping", icon: Mountain,        label: "MBTI 매핑" },
   { href: "/admin/oreums/validate",     icon: ShieldAlert,     label: "검증 리포트" },
   { href: "/admin/trend-alerts",         icon: TrendingUp,      label: "트렌드 알림" },

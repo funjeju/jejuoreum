@@ -8,19 +8,21 @@ import { CheckCircle2, Award, ChevronRight, Mountain, Sparkles, Radio, Users } f
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserProfile, getUserDiscoveries, getWishlist } from "@/lib/firestore/users";
 import { getOreumCards } from "@/lib/firestore/oreums";
-import { getUserChallenges } from "@/lib/firestore/challenges";
+import { getUserChallenges, getActiveChallenges, getChallengeLeaderboard } from "@/lib/firestore/challenges";
 import { getPublicFeed } from "@/lib/firestore/feed";
+import { getUserGrade, GRADE_INFO } from "@/lib/utils";
 import { Header } from "@/components/layout/Header";
 import { RecommendationHeroCard } from "@/components/home/RecommendationHeroCard";
 import { FriendRecommendations } from "@/components/feed/FriendRecommendations";
 import { ProgressOverviewCard } from "@/components/home/ProgressOverviewCard";
 import { QuickVerifyCard } from "@/components/home/QuickVerifyCard";
 import { CollectionStatsCard } from "@/components/collection/CollectionStatsCard";
+import { ChallengeDashboardCard } from "@/components/home/ChallengeDashboardCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, timeAgo, getSeason, getTimeKey } from "@/lib/utils";
-import type { UserProfile, UserDiscovery, OreumCard, FeedEvent, WishlistItem, UserChallenge } from "@/types";
+import type { UserProfile, UserDiscovery, OreumCard, FeedEvent, WishlistItem, UserChallenge, Challenge, ChallengeParticipant } from "@/types";
 
 const GREETINGS: Record<string, string> = {
   "spring-dawn": "봄의 새벽, 오름 안개가 신비로워요",
@@ -57,9 +59,12 @@ export default function HomePage() {
   const [profile, setProfile]       = useState<UserProfile | null>(null);
   const [discoveries, setDiscoveries] = useState<UserDiscovery[]>([]);
   const [featured, setFeatured]     = useState<OreumCard[]>([]);
+  const [gradeRecommend, setGradeRecommend] = useState<OreumCard | null>(null);
   const [feedEvents, setFeedEvents]  = useState<FeedEvent[]>([]);
   const [wishlist, setWishlist]      = useState<WishlistItem[]>([]);
   const [activeChallenge, setActiveChallenge] = useState<UserChallenge | null>(null);
+  const [activeChallengeInfo, setActiveChallengeInfo] = useState<Challenge | null>(null);
+  const [leaderboard, setLeaderboard] = useState<ChallengeParticipant[]>([]);
   const [loading, setLoading]        = useState(true);
   const [popularOreums, setPopularOreums] = useState<Array<{
     slug: string; nameKo: string; thumbnailUrl: string | null; weeklyVisitors: number;
@@ -68,12 +73,20 @@ export default function HomePage() {
   useEffect(() => {
     (async () => {
       try {
-        const [cards, feedResult] = await Promise.all([
+        const [cards, feedResult, activeChallenges] = await Promise.all([
           getOreumCards({ top100Only: true, limitCount: 10 }).catch((): OreumCard[] => []),
           getPublicFeed({ limitCount: 5 }).catch(() => ({ events: [] as FeedEvent[], cursor: null })),
+          getActiveChallenges().catch((): Challenge[] => []),
         ]);
         setFeatured(cards);
         setFeedEvents(feedResult.events);
+
+        // 첫 번째 활성 챌린지 + 리더보드
+        const firstChallenge = activeChallenges[0] ?? null;
+        setActiveChallengeInfo(firstChallenge);
+        if (firstChallenge) {
+          getChallengeLeaderboard(firstChallenge.id, 5).then(setLeaderboard).catch(() => {});
+        }
 
         fetch("/api/oreums/popular")
           .then((r) => r.json())
@@ -90,7 +103,23 @@ export default function HomePage() {
           setProfile(p);
           setDiscoveries(d);
           setWishlist(w);
-          setActiveChallenge(ch.find((c) => !c.isCompleted) ?? null);
+
+          // 등급 기반 추천 오름 (아직 안 가본 것 중 등급에 맞는 것)
+          const grade = getUserGrade(d.length);
+          const discSlugs = new Set(d.map((disc) => disc.oreumSlug));
+          const gradeCards = await getOreumCards({ level: grade }).catch((): OreumCard[] => []);
+          const unvisited = gradeCards.filter((o) => !discSlugs.has(o.slug));
+          if (unvisited.length > 0) {
+            const pick = unvisited[Math.floor(Math.random() * Math.min(unvisited.length, 5))];
+            setGradeRecommend(pick);
+          } else {
+            // 등급에 해당하는 오름이 없으면 top100 fallback
+            const fallback = cards.find((o) => !discSlugs.has(o.slug)) ?? cards[0] ?? null;
+            setGradeRecommend(fallback);
+          }
+
+          const myActiveChallenge = ch.find((c) => !c.isCompleted) ?? null;
+          setActiveChallenge(myActiveChallenge);
         }
       } finally {
         setLoading(false);
@@ -171,6 +200,16 @@ export default function HomePage() {
 
       {/* ── 본문 (-mt-4 트릭으로 자연스럽게 겹침) ────────── */}
       <div className="max-w-lg mx-auto px-4 -mt-4 space-y-4">
+
+        {/* 챌린지 대시보드 — 최상단 */}
+        {!loading && activeChallengeInfo && (
+          <ChallengeDashboardCard
+            challenge={activeChallengeInfo}
+            userChallenge={activeChallenge?.challengeId === activeChallengeInfo.id ? activeChallenge : null}
+            leaderboard={leaderboard}
+            uid={user?.uid ?? null}
+          />
+        )}
 
         {/* 진척도 카드 (로그인 시) */}
         {user && !loading && (
@@ -320,14 +359,26 @@ export default function HomePage() {
         {/* 친구 추천 동선 */}
         <FriendRecommendations />
 
-        {/* 오늘의 추천 오름 히어로 카드 */}
-        {!loading && recommendation && (
-          <RecommendationHeroCard
-            oreum={recommendation}
-            isDiscovered={discSet.has(recommendation.slug)}
-            locale={locale}
-          />
-        )}
+        {/* 등급별 추천 오름 */}
+        {!loading && gradeRecommend && user && (() => {
+          const grade = getUserGrade(total);
+          const info = GRADE_INFO[grade];
+          return (
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-sm">{info.emoji}</span>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {info.label} 추천 오름
+                </p>
+              </div>
+              <RecommendationHeroCard
+                oreum={gradeRecommend}
+                isDiscovered={discSet.has(gradeRecommend.slug)}
+                locale={locale}
+              />
+            </div>
+          );
+        })()}
         {loading && <Skeleton className="h-[200px] rounded-2xl" />}
 
         {/* 구분자 */}

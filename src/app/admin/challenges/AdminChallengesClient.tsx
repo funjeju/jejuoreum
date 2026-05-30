@@ -292,10 +292,10 @@ export default function AdminChallengesClient() {
           <DialogHeader>
             <DialogTitle>새 챌린지 만들기</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
 
             {/* 이름 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>이름 *</Label>
               <Input
                 value={form.nameKo}
@@ -305,7 +305,7 @@ export default function AdminChallengesClient() {
             </div>
 
             {/* 설명 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>설명</Label>
               <Input
                 value={form.descriptionKo}
@@ -315,7 +315,7 @@ export default function AdminChallengesClient() {
             </div>
 
             {/* 코드 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>코드 (비워두면 자동 생성)</Label>
               <Input
                 value={form.code}
@@ -326,7 +326,7 @@ export default function AdminChallengesClient() {
             </div>
 
             {/* 챌린지 타입 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>챌린지 타입 *</Label>
               <Select
                 value={form.challengeType}
@@ -352,7 +352,7 @@ export default function AdminChallengesClient() {
             {/* 기간 (permanent 제외) */}
             {form.challengeType !== "permanent" && (
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label className="flex items-center gap-1.5"><Calendar size={12} />시작일</Label>
                   <Input
                     type="date"
@@ -360,7 +360,7 @@ export default function AdminChallengesClient() {
                     onChange={(e) => setForm({ ...form, startsAt: fromDateInput(e.target.value) })}
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label className="flex items-center gap-1.5"><Calendar size={12} />종료일</Label>
                   <Input
                     type="date"
@@ -372,7 +372,7 @@ export default function AdminChallengesClient() {
             )}
 
             {/* 조건 타입 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>조건 타입 *</Label>
               <Select
                 value={form.conditionType}
@@ -399,7 +399,7 @@ export default function AdminChallengesClient() {
 
             {/* 조건별 서브 UI */}
             {form.conditionType === "count" && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label>목표 발견 개수</Label>
                 <Input
                   type="number"
@@ -411,7 +411,7 @@ export default function AdminChallengesClient() {
             )}
 
             {form.conditionType === "tier_complete" && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label>티어</Label>
                 <Select
                   value={(form.conditionValue as { tier?: string }).tier ?? "beginner"}
@@ -427,7 +427,7 @@ export default function AdminChallengesClient() {
             )}
 
             {form.conditionType === "region_complete" && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label>지역</Label>
                 <Select
                   value={(form.conditionValue as { region?: string }).region ?? "east"}
@@ -512,7 +512,7 @@ export default function AdminChallengesClient() {
             )}
 
             {/* 보상 배지 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label>보상 배지 코드 (선택)</Label>
               <Input
                 value={form.rewardBadgeCode ?? ""}

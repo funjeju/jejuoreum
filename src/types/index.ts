@@ -1,5 +1,7 @@
 export type Tier = "beginner" | "explorer" | "master";
 export type Region = "east" | "west" | "south" | "north" | "central";
+export type OreumLevel = "entry" | "novice" | "intermediate" | "advanced";
+export type UserGrade = OreumLevel;
 export type Season = "spring" | "summer" | "autumn" | "winter";
 export type TimeOfDay = "dawn" | "morning" | "noon" | "afternoon" | "evening" | "night";
 
@@ -29,6 +31,7 @@ export interface Oreum {
   oneLinerEn: string | null;
   descriptionKo: string | null;
   difficulty: number | null;        // 1~5
+  recommendedLevel: OreumLevel | null;
   trailLengthKm: number | null;
   estimatedMinutes: number | null;
   recommendedSeasons: Season[];
@@ -57,6 +60,7 @@ export interface OreumCard {
   tierOrder: number | null;
   region: Region;
   difficulty: number | null;
+  recommendedLevel: OreumLevel | null;
   thumbnailUrl: string | null;
   emotionalKeywords: string[];
   isPublished: boolean;
@@ -166,11 +170,27 @@ export interface UserChallenge {
   id: string;
   challengeId: string;
   challengeNameKo: string;
+  challengeType?: ChallengeType;
+  conditionType?: "region_complete" | "tier_complete" | "count" | "specific_set";
+  conditionValue?: Record<string, unknown>;
+  rewardBadgeCode?: string | null;
+  startsAt?: string | null;
   progress: number;
   goal: number;
   isCompleted: boolean;
   completedAt: string | null;
   startedAt: string;
+}
+
+export interface ChallengeParticipant {
+  uid: string;
+  nickname: string;
+  avatarUrl: string | null;
+  progress: number;
+  goal: number;
+  isCompleted: boolean;
+  completedAt: string | null;
+  joinedAt: string;
 }
 
 // ── 코멘트 ──────────────────────────────────────────────────

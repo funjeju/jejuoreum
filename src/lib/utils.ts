@@ -47,3 +47,19 @@ export function getTimeKey(): string {
   if (h < 21) return "evening";
   return "night";
 }
+
+export type UserGrade = "entry" | "novice" | "intermediate" | "advanced";
+
+export const GRADE_INFO: Record<UserGrade, { label: string; emoji: string; color: string; min: number; max: number | null }> = {
+  entry:        { label: "입문자", emoji: "🌱", color: "emerald", min: 0,  max: 9  },
+  novice:       { label: "초보자", emoji: "🥾", color: "blue",    min: 10, max: 29 },
+  intermediate: { label: "중급자", emoji: "⛰️", color: "violet",  min: 30, max: 49 },
+  advanced:     { label: "숙련자", emoji: "🏔️", color: "amber",   min: 50, max: null },
+};
+
+export function getUserGrade(discoveryCount: number): UserGrade {
+  if (discoveryCount < 10) return "entry";
+  if (discoveryCount < 30) return "novice";
+  if (discoveryCount < 50) return "intermediate";
+  return "advanced";
+}

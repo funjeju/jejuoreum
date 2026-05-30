@@ -61,7 +61,10 @@ export default function ChallengesClient() {
     if (!user) { router.push(`/${locale}/auth/login`); return; }
     setJoiningId(challenge.id);
     try {
-      await joinChallenge(user.uid, challenge);
+      await joinChallenge(user.uid, challenge, {
+        nickname:  user.displayName ?? "탐험가",
+        avatarUrl: user.photoURL ?? null,
+      });
       const uc = await getUserChallenges(user.uid);
       setUserChallenges(uc);
     } finally {
