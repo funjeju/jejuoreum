@@ -85,12 +85,13 @@ export default function QrClient() {
 
     if (wasNew) {
       await saveDiscovery(user.uid, {
-        oreumId:               selectedOreum.id,
-        oreumSlug:             selectedOreum.slug,
-        oreumNameKo:           selectedOreum.nameKo,
-        oreumRegion:           selectedOreum.region,
-        oreumTier:             selectedOreum.tier,
-        oreumThumbnailUrl:     selectedOreum.thumbnailUrl,
+        oreumId:                  selectedOreum.id,
+        oreumSlug:                selectedOreum.slug,
+        oreumNameKo:              selectedOreum.nameKo,
+        oreumRegion:              selectedOreum.region,
+        oreumTier:                selectedOreum.tier,
+        oreumRecommendedLevel:    selectedOreum.recommendedLevel ?? null,
+        oreumThumbnailUrl:        selectedOreum.thumbnailUrl,
         discoveredAt:          new Date().toISOString(),
         verificationMethod:    matchResult?.status === "auto" ? "gps" : "manual_select",
         verificationDistanceM: matchResult?.distance ?? null,

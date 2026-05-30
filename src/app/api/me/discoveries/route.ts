@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     oreumId, oreumSlug, oreumNameKo, oreumRegion, oreumTier,
-    oreumThumbnailUrl, verificationDistanceM, visibility,
+    oreumRecommendedLevel, oreumThumbnailUrl, verificationDistanceM, visibility,
   } = body;
 
   if (!oreumId || !oreumSlug || !oreumNameKo) {
@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
     oreumId, oreumSlug, oreumNameKo,
     oreumRegion: oreumRegion ?? null,
     oreumTier: oreumTier ?? null,
+    oreumRecommendedLevel: oreumRecommendedLevel ?? null,
     oreumThumbnailUrl: oreumThumbnailUrl ?? null,
     discoveredAt: now,
     verificationMethod: "gps",

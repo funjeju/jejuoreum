@@ -134,25 +134,46 @@ export default function MapClient() {
     });
 
     filtered.forEach((oreum) => {
-      const isDisc = discSlugs.has(oreum.slug);
-      const color = isDisc
-        ? (LEVEL_COLORS[oreum.recommendedLevel ?? ""] ?? "#1a4d2e")
-        : "#9ca3af";
+      const isDisc   = discSlugs.has(oreum.slug);
+      const isTop100 = oreum.isTop100;
+      const levelColor = oreum.recommendedLevel ? LEVEL_COLORS[oreum.recommendedLevel] : null;
+      const pinColor   = isDisc ? (levelColor ?? "#1a4d2e") : "#9ca3af";
+      const opacity    = isDisc ? 1 : 0.45;
 
-      // SVG 마커
-      const svg = `
-        <svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 0C6.27 0 0 6.27 0 14c0 9.63 14 22 14 22s14-12.37 14-22C28 6.27 21.73 0 14 0z" fill="${color}" opacity="${isDisc ? 1 : 0.5}"/>
-          <circle cx="14" cy="14" r="6" fill="white" opacity="0.9"/>
-        </svg>
-      `.trim();
+      // 이름 4글자 + '…' 처리
+      const shortName = oreum.nameKo.length > 5
+        ? oreum.nameKo.slice(0, 4) + "…"
+        : oreum.nameKo;
+
+      // Top100: 핀 뒤에 금색 후광 원
+      const top100Glow = isTop100
+        ? `<circle cx="28" cy="16" r="17" fill="#fbbf24" opacity="0.35"/>`
+        : "";
+      const top100Ring = isTop100
+        ? `stroke="#fbbf24" stroke-width="2.5"`
+        : `stroke="rgba(255,255,255,0.7)" stroke-width="1.5"`;
+
+      // SVG: 핀 + 이름 라벨
+      const W = 56, H = 52;
+      const svg = [
+        `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`,
+        top100Glow,
+        `<path d="M28 2C20.27 2 14 8.27 14 16c0 9.63 14 22 14 22s14-12.37 14-22C42 8.27 35.73 2 28 2z"`,
+        ` fill="${pinColor}" opacity="${opacity}" ${top100Ring}/>`,
+        `<circle cx="28" cy="16" r="6" fill="white" opacity="0.9"/>`,
+        `<rect x="1" y="40" width="${W - 2}" height="11" rx="3" fill="rgba(255,255,255,0.92)"/>`,
+        `<text x="${W / 2}" y="49" text-anchor="middle" font-size="8.5"`,
+        ` font-family="sans-serif" fill="#222" font-weight="600">${shortName}</text>`,
+        `</svg>`,
+      ].join("");
+
       const blob = new Blob([svg], { type: "image/svg+xml" });
-      const url = URL.createObjectURL(blob);
+      const url  = URL.createObjectURL(blob);
 
       const markerImage = new window.kakao.maps.MarkerImage(
         url,
-        new window.kakao.maps.Size(28, 36),
-        { offset: new window.kakao.maps.Point(14, 36) }
+        new window.kakao.maps.Size(W, H),
+        { offset: new window.kakao.maps.Point(W / 2, 38) }
       );
 
       const marker = new window.kakao.maps.Marker({
@@ -163,14 +184,19 @@ export default function MapClient() {
       });
 
       const levelLabel = LEVEL_LABELS[oreum.recommendedLevel ?? ""] ?? "";
-      const infoContent = `
-        <div style="padding:10px 14px;min-width:140px;font-family:sans-serif;">
-          <p style="font-weight:700;font-size:14px;margin:0 0 4px;">${oreum.nameKo}</p>
-          ${levelLabel ? `<p style="font-size:11px;color:#6b7280;margin:0 0 2px;">${levelLabel}</p>` : ""}
-          <p style="font-size:11px;color:${isDisc ? "#10b981" : "#9ca3af"};margin:0 0 6px;">${isDisc ? "✅ 발견 완료" : "미발견"}</p>
-          <a href="/${locale}/oreum/${oreum.slug}" style="font-size:12px;color:#1a4d2e;font-weight:600;text-decoration:none;">자세히 보기 →</a>
-        </div>
-      `;
+      const infoContent = [
+        `<div style="padding:10px 14px;min-width:150px;font-family:sans-serif;">`,
+        `<p style="font-weight:700;font-size:14px;margin:0 0 4px;">${oreum.nameKo}`,
+        isTop100 ? ` <span style="font-size:10px;color:#f59e0b;">⭐100선</span>` : "",
+        `</p>`,
+        levelLabel ? `<p style="font-size:11px;color:#6b7280;margin:0 0 2px;">${levelLabel}</p>` : "",
+        `<p style="font-size:11px;color:${isDisc ? "#10b981" : "#9ca3af"};margin:0 0 6px;">`,
+        isDisc ? "✅ 발견 완료" : "미발견",
+        `</p>`,
+        `<a href="/${locale}/oreum/${oreum.slug}"`,
+        ` style="font-size:12px;color:#1a4d2e;font-weight:600;text-decoration:none;">`,
+        `자세히 보기 →</a></div>`,
+      ].join("");
 
       const infoWindow = new window.kakao.maps.InfoWindow({
         content: infoContent,
@@ -248,8 +274,13 @@ export default function MapClient() {
 
         {/* 범례 */}
         <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur rounded-xl border border-border px-3 py-2 text-[10px] space-y-1 pointer-events-none z-10">
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> 발견</div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-400 inline-block" /> 미발견</div>
+          <p className="font-semibold text-[10px] text-muted-foreground mb-1">등급</p>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#10b981" }} /> 🌱 입문자</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#3b82f6" }} /> 🥾 초보자</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#8b5cf6" }} /> ⛰️ 중급자</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block" style={{ background: "#f59e0b" }} /> 🏔️ 숙련자</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block border-2 border-amber-400 bg-emerald-500" /> ⭐ 100선</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full inline-block bg-gray-400 opacity-50" /> 미발견</div>
         </div>
 
         {!mapReady && (

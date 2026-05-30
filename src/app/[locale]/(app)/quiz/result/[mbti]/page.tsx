@@ -9,7 +9,7 @@ export async function generateStaticParams() {
   return MBTI_TYPES.map((mbti) => ({ mbti: mbti.toLowerCase() }));
 }
 
-export const revalidate = 604800; // 1주마다 재생성
+export const dynamic = "force-static";
 
 export async function generateMetadata({
   params,

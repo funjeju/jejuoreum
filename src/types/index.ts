@@ -87,6 +87,7 @@ export interface UserDiscovery {
   oreumNameKo: string;
   oreumRegion: Region;
   oreumTier: Tier | null;
+  oreumRecommendedLevel: OreumLevel | null;
   oreumThumbnailUrl: string | null;
   discoveredAt: string;
   verificationMethod: "gps" | "manual_select" | "qr_code";
