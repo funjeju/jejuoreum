@@ -96,31 +96,20 @@ export default function MapClient() {
     }
   }, [user]);
 
-  // 지도 초기화
+  // 지도 초기화 — autoload=true 방식: onLoad 시점에 kakao.maps 바로 사용 가능
   const initMap = useCallback(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
-    if (!window.kakao?.maps) return;
-    window.kakao.maps.load(() => {
-      if (!mapRef.current) return;
-      const map = new window.kakao.maps.Map(mapRef.current, {
-        center: new window.kakao.maps.LatLng(33.38, 126.55),
-        level: 10,
-      });
-      mapInstanceRef.current = map;
-      setMapReady(true);
+    const map = new window.kakao.maps.Map(mapRef.current, {
+      center: new window.kakao.maps.LatLng(33.38, 126.55),
+      level: 10,
     });
+    mapInstanceRef.current = map;
+    setMapReady(true);
   }, []);
 
   useEffect(() => {
     if (sdkReady) initMap();
   }, [sdkReady, initMap]);
-
-  // SDK가 이미 로드된 경우 (캐시) 대비
-  useEffect(() => {
-    if (window.kakao?.maps) {
-      setSdkReady(true);
-    }
-  }, []);
 
   // 마커 렌더링
   useEffect(() => {
@@ -195,7 +184,7 @@ export default function MapClient() {
   return (
     <div className="min-h-screen bg-background">
       <Script
-        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`}
+        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}`}
         strategy="afterInteractive"
         onLoad={() => setSdkReady(true)}
       />
