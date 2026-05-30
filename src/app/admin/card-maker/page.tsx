@@ -466,9 +466,17 @@ export default function CardMakerPage() {
             )}
 
             {!styledImg && !generating && (
-              <p className="text-xs text-muted-foreground text-center">
-                스타일 선택 후 AI 변환을 눌러주세요
-              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground text-center">
+                  스타일 선택 후 AI 변환을 눌러주세요
+                </p>
+                <button
+                  onClick={() => setStep(4)}
+                  className="w-full py-2 rounded-lg border border-border text-xs font-semibold hover:bg-muted"
+                >
+                  변환 없이 바로 카드 편집 →
+                </button>
+              </div>
             )}
           </div>
         </div>
