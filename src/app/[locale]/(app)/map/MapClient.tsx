@@ -99,8 +99,10 @@ export default function MapClient() {
   // 지도 초기화
   const initMap = useCallback(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
+    if (!window.kakao?.maps) return;
     window.kakao.maps.load(() => {
-      const map = new window.kakao.maps.Map(mapRef.current!, {
+      if (!mapRef.current) return;
+      const map = new window.kakao.maps.Map(mapRef.current, {
         center: new window.kakao.maps.LatLng(33.38, 126.55),
         level: 10,
       });
@@ -112,6 +114,13 @@ export default function MapClient() {
   useEffect(() => {
     if (sdkReady) initMap();
   }, [sdkReady, initMap]);
+
+  // SDK가 이미 로드된 경우 (캐시) 대비
+  useEffect(() => {
+    if (window.kakao?.maps) {
+      setSdkReady(true);
+    }
+  }, []);
 
   // 마커 렌더링
   useEffect(() => {
@@ -184,9 +193,10 @@ export default function MapClient() {
   }, [oreums, discSlugs, levelFilter, top100Only, mapReady, locale]);
 
   return (
-    <div className="min-h-screen bg-background pb-20 flex flex-col">
+    <div className="min-h-screen bg-background">
       <Script
         src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`}
+        strategy="afterInteractive"
         onLoad={() => setSdkReady(true)}
       />
       <Header title="오름 지도" />
@@ -238,13 +248,24 @@ export default function MapClient() {
         </span>
       </div>
 
-      {/* 지도 */}
-      <div ref={mapRef} className="flex-1" style={{ minHeight: "calc(100vh - 160px)" }} />
+      {/* 지도 영역 — 카카오맵은 명시적 px 높이 필수 */}
+      <div className="relative" style={{ height: "calc(100vh - 112px)" }}>
+        <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
 
-      {/* 범례 */}
-      <div className="absolute bottom-24 left-4 bg-background/90 backdrop-blur rounded-xl border border-border px-3 py-2 text-[10px] space-y-1 pointer-events-none z-10">
-        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> 발견</div>
-        <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-400 inline-block" /> 미발견</div>
+        {/* 범례 */}
+        <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur rounded-xl border border-border px-3 py-2 text-[10px] space-y-1 pointer-events-none z-10">
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> 발견</div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-gray-400 inline-block" /> 미발견</div>
+        </div>
+
+        {!mapReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs">지도 불러오는 중...</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <BottomNav />
