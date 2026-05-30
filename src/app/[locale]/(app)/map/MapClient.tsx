@@ -95,37 +95,24 @@ export default function MapClient() {
     }
   }, [user]);
 
-  // kakao.maps 준비될 때까지 polling 후 초기화
+  // kakao 객체 감지 후 kakao.maps.load()로 초기화
   useEffect(() => {
-    console.log("[KakaoMap] polling 시작");
     let tries = 0;
     const timer = setInterval(() => {
       tries++;
-      const hasKakao = !!window.kakao;
-      const hasMaps  = !!window.kakao?.maps;
-      const hasRef   = !!mapRef.current;
-      if (tries % 10 === 1) {
-        console.log(`[KakaoMap] try ${tries} | kakao=${hasKakao} maps=${hasMaps} ref=${hasRef}`);
-      }
-      if (hasMaps && hasRef && !mapInstanceRef.current) {
+      if (window.kakao?.maps && mapRef.current && !mapInstanceRef.current) {
         clearInterval(timer);
-        console.log("[KakaoMap] 초기화 시작");
-        try {
-          const map = new window.kakao.maps.Map(mapRef.current!, {
+        window.kakao.maps.load(() => {
+          if (!mapRef.current || mapInstanceRef.current) return;
+          const map = new window.kakao.maps.Map(mapRef.current, {
             center: new window.kakao.maps.LatLng(33.38, 126.55),
             level: 10,
           });
           mapInstanceRef.current = map;
           setMapReady(true);
-          console.log("[KakaoMap] 초기화 완료");
-        } catch (e) {
-          console.error("[KakaoMap] 초기화 에러:", e);
-        }
+        });
       }
-      if (tries > 100) {
-        clearInterval(timer);
-        console.warn("[KakaoMap] 타임아웃 — kakao.maps 로드 실패");
-      }
+      if (tries > 100) clearInterval(timer);
     }, 100);
     return () => clearInterval(timer);
   }, []);
@@ -203,7 +190,7 @@ export default function MapClient() {
   return (
     <div className="min-h-screen bg-background">
       <Script
-        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}`}
+        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`}
         strategy="afterInteractive"
       />
       <Header title="오름 지도" />
