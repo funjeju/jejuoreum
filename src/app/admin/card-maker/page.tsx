@@ -514,15 +514,16 @@ export default function CardMakerPage() {
                 onClick={async () => {
                   const canvas = canvasRef.current;
                   if (!canvas || !selected) return;
-                  const imageBase64 = canvas.toDataURL("image/png");
                   const token = await user?.getIdToken();
+                  const blob = await new Promise<Blob>((resolve, reject) =>
+                    canvas.toBlob((b) => b ? resolve(b) : reject(new Error("blob failed")), "image/png")
+                  );
+                  const form = new FormData();
+                  form.append("file", blob, `${cardText.name || "oreum"}-card.png`);
                   const res = await fetch(`/api/admin/oreums/${selected.id}/thumbnail`, {
                     method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "Authorization": `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ imageBase64 }),
+                    headers: { Authorization: `Bearer ${token ?? ""}` },
+                    body: form,
                   });
                   if (res.ok) alert(`${selected.nameKo} 썸네일 저장 완료!`);
                   else alert("저장 실패. 다시 시도해주세요.");
