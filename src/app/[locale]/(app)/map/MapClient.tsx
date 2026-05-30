@@ -81,7 +81,6 @@ export default function MapClient() {
   const [discSlugs, setDiscSlugs] = useState<Set<string>>(new Set());
   const [levelFilter, setLevelFilter] = useState<"all" | OreumLevel>("all");
   const [top100Only, setTop100Only] = useState(false);
-  const [sdkReady, setSdkReady] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
   // 데이터 로드
@@ -96,20 +95,24 @@ export default function MapClient() {
     }
   }, [user]);
 
-  // 지도 초기화 — autoload=true 방식: onLoad 시점에 kakao.maps 바로 사용 가능
-  const initMap = useCallback(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
-    const map = new window.kakao.maps.Map(mapRef.current, {
-      center: new window.kakao.maps.LatLng(33.38, 126.55),
-      level: 10,
-    });
-    mapInstanceRef.current = map;
-    setMapReady(true);
-  }, []);
-
+  // kakao.maps 준비될 때까지 polling 후 초기화
   useEffect(() => {
-    if (sdkReady) initMap();
-  }, [sdkReady, initMap]);
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries++;
+      if (window.kakao?.maps && mapRef.current && !mapInstanceRef.current) {
+        clearInterval(timer);
+        const map = new window.kakao.maps.Map(mapRef.current, {
+          center: new window.kakao.maps.LatLng(33.38, 126.55),
+          level: 10,
+        });
+        mapInstanceRef.current = map;
+        setMapReady(true);
+      }
+      if (tries > 100) clearInterval(timer); // 10초 타임아웃
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
 
   // 마커 렌더링
   useEffect(() => {
@@ -186,7 +189,6 @@ export default function MapClient() {
       <Script
         src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}`}
         strategy="afterInteractive"
-        onLoad={() => setSdkReady(true)}
       />
       <Header title="오름 지도" />
 
