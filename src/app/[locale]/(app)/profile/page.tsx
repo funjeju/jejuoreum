@@ -99,7 +99,7 @@ export default function ProfilePage() {
       <Header title={t("title")} />
 
       {/* 프로필 헤더 — 애정 오름 일러스트 배경 */}
-      <div className="relative bg-header px-5 pt-6 pb-16 overflow-hidden">
+      <div className="relative bg-header px-5 pt-6 pb-12 overflow-hidden">
         {/* 일러스트 배경 (3개 타일) */}
         {favoriteOreums.length > 0 && (
           <div className="absolute inset-0 flex pointer-events-none">
@@ -158,7 +158,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 -mt-10 space-y-3">
+      <div className="max-w-lg mx-auto px-4 -mt-6 space-y-3">
 
         {/* 통계 카드 */}
         {!loading && (
@@ -167,18 +167,22 @@ export default function ProfilePage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">나의 기록</p>
               <p className="text-xs text-muted-foreground">{pct.toFixed(0)}% 완주</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-4 gap-2 mb-3">
               <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{total}</p>
-                <p className="text-xs text-muted-foreground">발견</p>
+                <p className="text-xl font-bold text-primary">{total}</p>
+                <p className="text-[11px] text-muted-foreground">전체</p>
               </div>
-              <div className="text-center border-x border-border">
-                <p className="text-2xl font-bold">{discoveries.filter(d => d.oreumTier === "beginner").length}</p>
-                <p className="text-xs text-muted-foreground">비기너</p>
+              <div className="text-center border-l border-border">
+                <p className="text-xl font-bold">{discoveries.filter(d => d.oreumRecommendedLevel === "entry").length}</p>
+                <p className="text-[11px] text-muted-foreground">🌱 입문</p>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{discoveries.filter(d => d.oreumTier === "explorer").length}</p>
-                <p className="text-xs text-muted-foreground">익스플로러</p>
+              <div className="text-center border-l border-border">
+                <p className="text-xl font-bold">{discoveries.filter(d => d.oreumRecommendedLevel === "novice").length}</p>
+                <p className="text-[11px] text-muted-foreground">🥾 초보</p>
+              </div>
+              <div className="text-center border-l border-border">
+                <p className="text-xl font-bold">{discoveries.filter(d => d.oreumRecommendedLevel === "intermediate" || d.oreumRecommendedLevel === "advanced").length}</p>
+                <p className="text-[11px] text-muted-foreground">⛰️ 중급+</p>
               </div>
             </div>
             <Progress value={pct} className="h-1.5 [&>div]:bg-primary" />
