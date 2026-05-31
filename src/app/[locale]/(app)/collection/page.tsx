@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { CheckCircle2, SlidersHorizontal, Map } from "lucide-react";
+import { OreumCardModal } from "@/components/collection/OreumCardModal";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getOreumCards } from "@/lib/firestore/oreums";
 import { getUserDiscoveries } from "@/lib/firestore/users";
@@ -250,6 +251,8 @@ function OreumGrid({ oreums, discSet, locale, loading }: {
   locale: string;
   loading: boolean;
 }) {
+  const [modalOreum, setModalOreum] = useState<OreumCard | null>(null);
+
   if (loading) {
     return (
       <div className="grid grid-cols-3 gap-2">
@@ -273,13 +276,26 @@ function OreumGrid({ oreums, discSet, locale, loading }: {
   }
 
   return (
+    <>
+    {modalOreum && (
+      <OreumCardModal
+        oreum={modalOreum}
+        isDiscovered={discSet.has(modalOreum.slug)}
+        locale={locale}
+        onClose={() => setModalOreum(null)}
+      />
+    )}
     <div className="grid grid-cols-3 gap-2">
       {oreums.map((oreum) => {
         const discovered = discSet.has(oreum.slug);
         return (
-          <Link key={oreum.slug} href={`/${locale}/oreum/${oreum.slug}`}>
+          <button
+            key={oreum.slug}
+            onClick={() => setModalOreum(oreum)}
+            className="text-left"
+          >
             <div
-              className="relative overflow-hidden rounded-xl border border-border bg-muted hover:scale-[1.02] transition-transform duration-200"
+              className="relative overflow-hidden rounded-xl border border-border bg-muted active:scale-95 transition-transform duration-150"
               style={{ aspectRatio: "3/4" }}
             >
               {/* 이미지 */}
@@ -317,9 +333,10 @@ function OreumGrid({ oreums, discSet, locale, loading }: {
                 )}
               </div>
             </div>
-          </Link>
+          </button>
         );
       })}
     </div>
+    </>
   );
 }

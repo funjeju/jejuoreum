@@ -313,7 +313,7 @@ export default function ProfilePage() {
         {/* 애정 오름 미설정 시 CTA */}
         {!loading && favoriteOreums.length === 0 && profile?.oreumMbti && (
           <Link
-            href={`/${locale}/quiz/result/${profile.oreumMbti.toLowerCase()}`}
+            href={`/${locale}/profile/favorites`}
             className="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 border border-rose-100 hover:opacity-90 transition-opacity"
           >
             <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
@@ -321,7 +321,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold">나의 애정 오름 지정하기</p>
-              <p className="text-xs text-muted-foreground mt-0.5">MBTI 결과에서 최대 3개 선택</p>
+              <p className="text-xs text-muted-foreground mt-0.5">전체 오름에서 최대 3개 선택</p>
             </div>
             <ChevronRight size={16} className="text-muted-foreground shrink-0" />
           </Link>
