@@ -12,10 +12,11 @@ export async function getActiveChallenges(): Promise<Challenge[]> {
   const q = query(
     collection(db, "challenges"),
     where("isActive", "==", true),
-    orderBy("nameKo", "asc")
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Challenge));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Challenge))
+    .sort((a, b) => a.nameKo.localeCompare(b.nameKo, "ko"));
 }
 
 export async function getUserChallenges(uid: string): Promise<UserChallenge[]> {

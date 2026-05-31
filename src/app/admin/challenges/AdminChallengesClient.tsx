@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, CheckCircle2, Circle, Loader2, Target, X, Search, Calendar, Mountain } from "lucide-react";
+import { Plus, CheckCircle2, Circle, Loader2, Target, X, Search, Calendar, Mountain, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Challenge, ChallengeType, OreumCard } from "@/types";
 
@@ -72,9 +72,11 @@ export default function AdminChallengesClient() {
   const [challenges, setChallenges]     = useState<Challenge[]>([]);
   const [loading, setLoading]           = useState(true);
   const [modal, setModal]               = useState(false);
+  const [editId, setEditId]             = useState<string | null>(null);
   const [form, setForm]                 = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving]             = useState(false);
   const [togglingId, setTogglingId]     = useState<string | null>(null);
+  const [deletingId, setDeletingId]     = useState<string | null>(null);
 
   // 오름 목록 (specific_set 피커용)
   const [allOreums, setAllOreums]       = useState<OreumCard[]>([]);
@@ -155,27 +157,59 @@ export default function AdminChallengesClient() {
     }
   };
 
-  const handleCreate = async () => {
+
+  const handleDelete = async (ch: Challenge) => {
+    if (!confirm(`"${ch.nameKo}" 챌린지를 삭제할까요?`)) return;
+    setDeletingId(ch.id);
+    try {
+      const token = await getToken();
+      await fetch(`/api/admin/challenges/${ch.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setChallenges((prev) => prev.filter((c) => c.id !== ch.id));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleEdit = (ch: Challenge) => {
+    const { id, participantCount, ...rest } = ch as Challenge & { participantCount: number };
+    void id; void participantCount;
+    setForm(rest as FormData);
+    setEditId(ch.id);
+    setOreumSearch("");
+    setModal(true);
+  };
+
+  const handleSave = async () => {
     if (!form.nameKo.trim()) return;
     setSaving(true);
     try {
       const token = await getToken();
       const code = form.code || form.nameKo.trim().replace(/\s+/g, "_").toLowerCase();
-      const res = await fetch("/api/admin/challenges", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...form, code, participantCount: 0 }),
-      });
-      const data = await res.json();
-      if (data.id) {
-        setChallenges((prev) => [
-          ...prev,
-          { ...form, code, id: data.id, participantCount: 0 },
-        ]);
-        setModal(false);
-        setForm(EMPTY_FORM);
-        setOreumSearch("");
+      if (editId) {
+        await fetch(`/api/admin/challenges/${editId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ...form, code }),
+        });
+        setChallenges((prev) => prev.map((c) => c.id === editId ? { ...c, ...form, code } : c));
+      } else {
+        const res = await fetch("/api/admin/challenges", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ...form, code, participantCount: 0 }),
+        });
+        const data = await res.json();
+        if (data.id) {
+          setChallenges((prev) => [...prev, { ...form, code, id: data.id, participantCount: 0 }]);
+        }
       }
+      setModal(false);
+      setForm(EMPTY_FORM);
+      setEditId(null);
+      setOreumSearch("");
     } finally {
       setSaving(false);
     }
@@ -183,6 +217,7 @@ export default function AdminChallengesClient() {
 
   const openModal = () => {
     setForm(EMPTY_FORM);
+    setEditId(null);
     setOreumSearch("");
     setModal(true);
   };
@@ -265,18 +300,37 @@ export default function AdminChallengesClient() {
                       }
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 px-2 text-xs"
-                        disabled={togglingId === ch.id}
-                        onClick={() => handleToggleActive(ch)}
-                      >
-                        {togglingId === ch.id
-                          ? <Loader2 size={12} className="animate-spin" />
-                          : ch.isActive ? "비활성화" : "활성화"
-                        }
-                      </Button>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          disabled={togglingId === ch.id}
+                          onClick={() => handleToggleActive(ch)}
+                        >
+                          {togglingId === ch.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : ch.isActive ? "비활성화" : "활성화"
+                          }
+                        </Button>
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700"
+                          onClick={() => handleEdit(ch)}
+                        >
+                          <Pencil size={12} className="mr-1" />수정
+                        </Button>
+                        <Button
+                          size="sm" variant="ghost"
+                          className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                          disabled={deletingId === ch.id}
+                          onClick={() => handleDelete(ch)}
+                        >
+                          {deletingId === ch.id
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <><Trash2 size={12} className="mr-1" />삭제</>
+                          }
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -290,7 +344,7 @@ export default function AdminChallengesClient() {
       <Dialog open={modal} onOpenChange={setModal}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>새 챌린지 만들기</DialogTitle>
+            <DialogTitle>{editId ? "챌린지 수정" : "새 챌린지 만들기"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
 
@@ -542,12 +596,14 @@ export default function AdminChallengesClient() {
 
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" onClick={() => setModal(false)}>취소</Button>
-              <Button onClick={handleCreate} disabled={saving || !form.nameKo.trim()}>
+              <Button onClick={handleSave} disabled={saving || !form.nameKo.trim()}>
                 {saving
                   ? <Loader2 size={14} className="animate-spin mr-1.5" />
-                  : <Plus size={14} className="mr-1.5" />
+                  : editId
+                    ? <Pencil size={14} className="mr-1.5" />
+                    : <Plus size={14} className="mr-1.5" />
                 }
-                만들기
+                {editId ? "저장" : "만들기"}
               </Button>
             </div>
           </div>
