@@ -470,10 +470,7 @@ export default function HomePage() {
                     href={`/${locale}/oreum/${oreum.slug}`}
                     className="flex-shrink-0 w-28 group"
                   >
-                    <div className={cn(
-                      "relative w-28 h-36 rounded-xl overflow-hidden bg-muted",
-                      !discovered && "grayscale"
-                    )}>
+                    <div className="relative w-28 h-36 rounded-xl overflow-hidden bg-muted">
                       {oreum.thumbnailUrl ? (
                         <Image
                           src={oreum.thumbnailUrl}

@@ -29,8 +29,7 @@ export function RecommendationHeroCard({ oreum, isDiscovered, locale }: Props) {
             alt={oreum.nameKo}
             fill
             className={cn(
-              "object-cover group-hover:scale-105 transition-transform duration-500",
-              !isDiscovered && "grayscale brightness-75"
+              "object-cover group-hover:scale-105 transition-transform duration-500"
             )}
             sizes="(max-width: 512px) 100vw, 512px"
           />
