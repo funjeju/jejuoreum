@@ -57,6 +57,11 @@ export async function getOreumCards(opts: {
   return cards;
 }
 
+export async function getOreumsBySlugs(slugs: string[]): Promise<Oreum[]> {
+  const results = await Promise.all(slugs.map(getOreumBySlug));
+  return results.filter((o): o is Oreum => o !== null);
+}
+
 export async function getNearbyOreums(
   lat: number, lng: number, radiusKm: number
 ): Promise<NearbyOreum[]> {
