@@ -583,26 +583,28 @@ function OreumMiniCircles({
   );
 }
 
-// ── 오름 단일 서클 (slug → 이름 tooltip) ─────────────────────
+// ── 오름 단일 서클 (slug → 썸네일 + 이름 tooltip) ────────────
 
-const oreumNameCache: Record<string, string> = {};
+const oreumCache: Record<string, { name: string; thumbnail: string | null }> = {};
 
 function OreumCircle({ slug, size, dark = true }: { slug: string; size: number; dark?: boolean }) {
-  const [name, setName] = useState<string>(oreumNameCache[slug] ?? "");
-  const [showTip, setShowTip] = useState(false);
+  const cached = oreumCache[slug];
+  const [name, setName]           = useState<string>(cached?.name ?? "");
+  const [thumbnail, setThumbnail] = useState<string | null>(cached?.thumbnail ?? null);
+  const [showTip, setShowTip]     = useState(false);
 
   useEffect(() => {
-    if (!name) {
-      import("@/lib/firestore/oreums").then(({ getOreumBySlug }) =>
-        getOreumBySlug(slug).then((o) => {
-          if (o) {
-            oreumNameCache[slug] = o.nameKo;
-            setName(o.nameKo);
-          }
-        })
-      );
-    }
-  }, [slug, name]);
+    if (cached) return;
+    import("@/lib/firestore/oreums").then(({ getOreumBySlug }) =>
+      getOreumBySlug(slug).then((o) => {
+        if (o) {
+          oreumCache[slug] = { name: o.nameKo, thumbnail: o.thumbnailUrl ?? null };
+          setName(o.nameKo);
+          setThumbnail(o.thumbnailUrl ?? null);
+        }
+      })
+    );
+  }, [slug, cached]);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -612,16 +614,20 @@ function OreumCircle({ slug, size, dark = true }: { slug: string; size: number; 
         onTouchStart={() => setShowTip(true)}
         onTouchEnd={() => setTimeout(() => setShowTip(false), 1200)}
         className={cn(
-          "w-full h-full rounded-full flex items-center justify-center cursor-pointer transition-colors overflow-hidden",
-          dark
-            ? "bg-white/25 border border-white/40 hover:bg-white/35"
-            : "bg-emerald-100 border border-emerald-200 hover:bg-emerald-200"
+          "w-full h-full rounded-full cursor-pointer overflow-hidden transition-opacity hover:opacity-85",
+          dark ? "border-2 border-white/60" : "border-2 border-emerald-300"
         )}
       >
-        <Mountain
-          size={size * 0.44}
-          className={dark ? "text-white" : "text-emerald-600"}
-        />
+        {thumbnail ? (
+          <img src={thumbnail} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <div className={cn(
+            "w-full h-full flex items-center justify-center",
+            dark ? "bg-white/25" : "bg-emerald-100"
+          )}>
+            <Mountain size={size * 0.44} className={dark ? "text-white" : "text-emerald-600"} />
+          </div>
+        )}
       </div>
       {showTip && name && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none">
